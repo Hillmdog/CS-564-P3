@@ -83,7 +83,8 @@ void BTreeIndex::endScan()
 if(!scanExecuting){
 		throw ScanNotInitializedException();
 	}
-	scanExecuting = false;
+scanExecuting = false;
+bufMgr->unPinPage(file, currentPageNum, false);
 }
 
 }
