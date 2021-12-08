@@ -79,11 +79,12 @@ void BTreeIndex::scanNext(RecordId& outRid)
 // -----------------------------------------------------------------------------
 //
 void BTreeIndex::endScan(){
-	//Unpinning all the pages that have been pinned for the purpose of scan
+	//Method terminates the current scan and  throws a ScanNotInitializedException if invoked before a succesful startScan call
 	if(!scanExecuting){
 		throw ScanNotInitializedException();
 	}
 	scanExecuting = false;
+	//Unpinning all the pages that have been pinned for the purpose of scan
 	bufMgr->unPinPage(file, currentPageNum, false);
 }
 
