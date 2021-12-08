@@ -80,7 +80,10 @@ void BTreeIndex::scanNext(RecordId& outRid)
 //
 void BTreeIndex::endScan() 
 {
-
+if(!scanExecuting){
+		throw ScanNotInitializedException();
+	}
+	scanExecuting = false;
 }
 
 }
