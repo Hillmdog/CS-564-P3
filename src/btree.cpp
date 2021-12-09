@@ -83,7 +83,7 @@ void BTreeIndex::endScan(){
 	if(!scanExecuting){
 		throw ScanNotInitializedException();
 	}
-	scanExecuting = false;
+	scanExecuting = false;//temp name
 	//unpin the pages for the scan
 	bufMgr->unPinPage(file, currentPageNum, false);
 }
