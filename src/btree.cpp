@@ -61,6 +61,21 @@ void BTreeIndex::startScan(const void* lowValParm,
 				   const Operator lowOpParm,
 				   const void* highValParm,
 				   const Operator highOpParm)
+    // start with exception handling (need to probobly update what im passing to the exceptions)
+    if (*lowOpParm > *highValParm) {
+        throw BadScanrangeException();
+    }
+    // check type ids
+    if (!typeid(lowOpParm).name() == "LT" && !typeid(lowOpParm).name() == "LTE") {
+        throw BadOpcodesException();
+    } 
+    if (!typeid(highValParm).name() == "GT" && !typeid(highValParm).name() == "GTE") {
+        throw BadOpcodeException();
+    }
+    
+    scanExecuting = true;
+    
+
 {
 
 }
