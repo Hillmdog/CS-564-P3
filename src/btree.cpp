@@ -111,6 +111,35 @@ BTreeIndex::~BTreeIndex()
 }
 
 // -----------------------------------------------------------------------------
+// BTreeIndex::traverseTreeNonLeafNode
+//------------------------------------------------------------------------------
+
+NonLeafNodeInt traverseTreeNonLeafNode (page current, int target) {
+    // cast current to nonLeafNode
+    NonLeafNodeInt cur = reinterpret_cast<*NonLeafNodeInt>(&current);
+
+    // base case
+    // returns parent to target leaf
+    if (cur->level == 1) {
+        return cur; // or current which ever is more useful we can change this
+    }
+
+    // loop to find next node
+    for (int i = 0; i < sizeof(cur->keyArray); i++) {
+        int curkey = cur->keyArray[i];
+        
+        // recursive case #1
+        if (curkey > target) {
+            return traverseTreeNonLeafNode(cur->pageNoArray[i], target);
+        }
+    }
+
+    // recursize case #2
+    return traverseTreeNonLeafNode(cur->pageNoArray.back(), target);
+}
+
+
+// -----------------------------------------------------------------------------
 // BTreeIndex::insertEntry
 // -----------------------------------------------------------------------------
 
@@ -127,6 +156,24 @@ void BTreeIndex::startScan(const void* lowValParm,
 				   const Operator lowOpParm,
 				   const void* highValParm,
 				   const Operator highOpParm)
+    // start with exception handling (need to probobly update what im passing to the exceptions)
+    if (*lowOpParm > *highValParm) {
+        throw BadScanrangeException();
+    }
+    // check type ids
+    if (!typeid(lowOpParm).name() == "LT" && !typeid(lowOpParm).name() == "LTE") {
+        throw BadOpcodesException();
+    } 
+    if (!typeid(highValParm).name() == "GT" && !typeid(highValParm).name() == "GTE") {
+        throw BadOpcodeException();
+    }
+    
+    scanExecuting = true;
+    // get the root page
+    page current = -1;
+    // not sure if this should be * or not
+    bufMgr->readPage(*file, rootPageNum, current);     
+
 {
 
 }

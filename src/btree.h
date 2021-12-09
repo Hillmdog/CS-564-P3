@@ -318,6 +318,16 @@ class BTreeIndex {
 	 * */
 	~BTreeIndex();
 
+/**
+    * Given a current page and a target, function will cast the page to a non-leaf-node
+    * and check to see which pointer in pageNoArray points to the given target
+    * recrusivly calls itself when it finds that new node to continue traversing down to the target.
+    * @param current        current node being iterated through
+    * @param target         target value
+**/
+   
+   NonLeafNodeInt traverseTreeNonLeafNode (page current, int target);
+
 
   /**
 	 * Insert a new entry using the pair <value,rid>. 
