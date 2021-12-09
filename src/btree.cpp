@@ -63,6 +63,7 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 			// end of file scan
 		}
 		fileScanner.~FileScan();
+		scanExecuting = false;
 	} else {
 		// if exists, open the index file
 		BTreeIndex::file = &BlobFile::open(outIndexName);
@@ -80,6 +81,7 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 			throw new BadIndexInfoException(outIndexName);
 		}
 		BTreeIndex::rootPageNum = btreeHeader->rootPageNo;
+		scanExecuting = false;
 	}
 }
 
@@ -90,6 +92,7 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 
 BTreeIndex::~BTreeIndex()
 {
+
 }
 
 // -----------------------------------------------------------------------------
