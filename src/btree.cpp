@@ -99,7 +99,7 @@ BTreeIndex::~BTreeIndex()
 // BTreeIndex::traverseTreeNonLeafNode
 //------------------------------------------------------------------------------
 
-void traverseTreeNonLeafNode (page current, int target) {
+NonLeafNodeInt traverseTreeNonLeafNode (page current, int target) {
     // cast current to nonLeafNode
     NonLeafNodeInt cur = reinterpret_cast<*NonLeafNodeInt>(&current);
 
