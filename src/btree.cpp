@@ -31,8 +31,58 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 		BufMgr *bufMgrIn,
 		const int attrByteOffset,
 		const Datatype attrType)
-{
 
+{
+	// check if the index file exists
+	if (!File::exists(outIndexName)) {
+		// create the index file if not already exists
+		BTreeIndex::file = &BlobFile::create(outIndexName);
+		// initialize metadata
+		BTreeIndex::bufMgr = bufMgrIn;
+		BTreeIndex::headerPageNum = 1;
+		BTreeIndex::rootPageNum = 2;
+		BTreeIndex::attributeType = attrType;
+		BTreeIndex::attrByteOffset = attrByteOffset;
+		// insert header page
+		const IndexMetaInfo btreeHeader = {outIndexName[0], attrByteOffset, attrType, 2};
+		Page headerPage = *(reinterpret_cast<const Page*>(&btreeHeader));
+		file->writePage(headerPageNum, headerPage);
+		// insert entries for every tuple in the base relation using FileScan class
+		FileScan fileScanner = FileScan(outIndexName, bufMgrIn);
+		try {
+			RecordId rid;
+			while (true) {
+				fileScanner.scanNext(rid);
+				std::string record = fileScanner.getRecord();
+				// get key from record 
+				const char *record_ptr = record.c_str();
+				const void *key = (int *)(record_ptr + attrByteOffset);
+				insertEntry(key, rid);
+			}
+		} catch(EndOfFileException e) {
+			// end of file scan
+		}
+		fileScanner.~FileScan();
+		scanExecuting = false;
+	} else {
+		// if exists, open the index file
+		BTreeIndex::file = &BlobFile::open(outIndexName);
+		// check if the metadata in header matches with the given values
+		BTreeIndex::bufMgr = bufMgrIn;
+		BTreeIndex::headerPageNum = 1;
+		BTreeIndex::attributeType = attrType;
+		BTreeIndex::attrByteOffset = attrByteOffset;
+		Page headerPage = (*file).readPage(headerPageNum);
+		// convert char[](Page) to struct 
+		const IndexMetaInfo* btreeHeader = reinterpret_cast<const IndexMetaInfo*>(&headerPage);
+		// if not match, throw BadIndexInfoException
+		if (btreeHeader->relationName != relationName || btreeHeader->attrByteOffset != attrByteOffset 
+				|| btreeHeader->attrType != attrType) {
+			throw new BadIndexInfoException(outIndexName);
+		}
+		BTreeIndex::rootPageNum = btreeHeader->rootPageNo;
+		scanExecuting = false;
+	}
 }
 
 
@@ -42,6 +92,7 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 
 BTreeIndex::~BTreeIndex()
 {
+
 }
 
 // -----------------------------------------------------------------------------
@@ -98,7 +149,7 @@ void BTreeIndex::endScan(){
 	if(!scanExecuting){
 		throw ScanNotInitializedException();
 	}
-	scanExecuting = false;
+	scanExecuting = false;//temp name
 	//unpin the pages for the scan
 	bufMgr->unPinPage(file, currentPageNum, false);
 }
