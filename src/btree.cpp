@@ -43,10 +43,13 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 		BTreeIndex::rootPageNum = 2;
 		BTreeIndex::attributeType = attrType;
 		BTreeIndex::attrByteOffset = attrByteOffset;
-		// insert header page
+		// create header page
 		const IndexMetaInfo btreeHeader = {outIndexName[0], attrByteOffset, attrType, 2};
 		Page headerPage = *(reinterpret_cast<const Page*>(&btreeHeader));
-		file->writePage(headerPageNum, headerPage);
+		Page* headerPage_ptr;
+		bufMgr->allocPage(file, headerPageNum, headerPage_ptr); // file->writePage(headerPageNum, headerPage);
+		headerPage_ptr = &headerPage;
+		bufMgr->unPinPage(file, headerPageNum, true);
 		// insert entries for every tuple in the base relation using FileScan class
 		FileScan fileScanner = FileScan(outIndexName, bufMgrIn);
 		try {
@@ -69,10 +72,12 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 		BTreeIndex::file = &BlobFile::open(outIndexName);
 		// check if the metadata in header matches with the given values
 		BTreeIndex::bufMgr = bufMgrIn;
-		BTreeIndex::headerPageNum = 1;
+		BTreeIndex::headerPageNum = file->getFirstPageNo(); // or 1
 		BTreeIndex::attributeType = attrType;
 		BTreeIndex::attrByteOffset = attrByteOffset;
-		Page headerPage = (*file).readPage(headerPageNum);
+		Page* headerPage;
+		bufMgr->readPage(file, headerPageNum, headerPage); // Page headerPage = (*file).readPage(headerPageNum);
+		bufMgr->unPinPage(file, headerPageNum, false);
 		// convert char[](Page) to struct 
 		const IndexMetaInfo* btreeHeader = reinterpret_cast<const IndexMetaInfo*>(&headerPage);
 		// if not match, throw BadIndexInfoException
@@ -91,8 +96,18 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 // -----------------------------------------------------------------------------
 
 BTreeIndex::~BTreeIndex()
-{
-
+{ 
+	endScan();
+	// assuming all pinned papges are unpinned as soon as the btree finishes using them.
+	try {
+		bufMgr->flushFile(file);
+	} catch (BadgerDbException e) {
+		std::cout << e.message();
+		// unpin all pages
+		// TODO
+	}
+	// delete bufMgr;
+	delete file;
 }
 
 // -----------------------------------------------------------------------------
