@@ -117,12 +117,12 @@ BTreeIndex::~BTreeIndex()
 
 NonLeafNodeInt traverseTreeNonLeafNode (Page current, int target) {
     // cast current to nonLeafNode
-    NonLeafNodeInt cur = reinterpret_cast<*NonLeafNodeInt>(&current);
+    NonLeafNodeInt* cur = reinterpret_cast<NonLeafNodeInt*>(&current);
 
     // base case
     // returns parent to target leaf
     if (cur->level == 1) {
-        return cur; // or current which ever is more useful we can change this
+        return *cur; // or current which ever is more useful we can change this
     }
 
     // loop to find next node
@@ -156,8 +156,9 @@ void BTreeIndex::insertEntry(const void *key, const RecordId rid)
 void BTreeIndex::startScan(const void* lowValParm,
 				   const Operator lowOpParm,
 				   const void* highValParm,
-				   const Operator highOpParm)
-    // start with exception handling (need to probobly update what im passing to the exceptions)
+				   const Operator highOpParm)  
+{
+	// start with exception handling (need to probobly update what im passing to the exceptions)
     if (*lowOpParm > *highValParm) {
         throw BadScanrangeException();
     }
@@ -171,12 +172,9 @@ void BTreeIndex::startScan(const void* lowValParm,
     
     scanExecuting = true;
     // get the root page
-    page current = -1;
+    Page* current = NULL;
     // not sure if this should be * or not
-    bufMgr->readPage(*file, rootPageNum, current);     
-
-{
-
+    bufMgr->readPage(file, rootPageNum, current);   
 }
 
 // -----------------------------------------------------------------------------
