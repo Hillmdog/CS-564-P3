@@ -88,7 +88,7 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 		BTreeIndex::rootPageNum = btreeHeader->rootPageNo;
 		scanExecuting = false;
 	}
-	int nextPageID = 3;
+	BTreeIndex::nextPageID = 3;
 }
 
 
