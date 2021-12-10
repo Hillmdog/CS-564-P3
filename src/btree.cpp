@@ -96,7 +96,8 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 // -----------------------------------------------------------------------------
 
 BTreeIndex::~BTreeIndex()
-{ 
+{
+	scanExecuting = false;
 	endScan();
 	// assuming all pinned papges are unpinned as soon as the btree finishes using them.
 	try {
@@ -107,14 +108,14 @@ BTreeIndex::~BTreeIndex()
 		// TODO
 	}
 	// delete bufMgr;
-	delete file;
+	file->~File();
 }
 
 // -----------------------------------------------------------------------------
 // BTreeIndex::traverseTreeNonLeafNode
 //------------------------------------------------------------------------------
 
-NonLeafNodeInt traverseTreeNonLeafNode (page current, int target) {
+NonLeafNodeInt traverseTreeNonLeafNode (Page current, int target) {
     // cast current to nonLeafNode
     NonLeafNodeInt cur = reinterpret_cast<*NonLeafNodeInt>(&current);
 

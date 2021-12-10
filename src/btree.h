@@ -326,7 +326,7 @@ class BTreeIndex {
     * @param target         target value
 **/
    
-   NonLeafNodeInt traverseTreeNonLeafNode (page current, int target);
+   NonLeafNodeInt traverseTreeNonLeafNode (Page current, int target);
 
 
   /**
