@@ -187,7 +187,7 @@ void BTreeIndex::scanNext(RecordId& outRid){
 		throw ScanNotInitializedException();
 	}
 	if(nextEntry == -1) {
-		throw new IndexScanCompletedException();
+		throw IndexScanCompletedException();
 	}
 }
 
