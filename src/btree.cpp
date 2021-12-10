@@ -183,9 +183,12 @@ void BTreeIndex::startScan(const void* lowValParm,
 // -----------------------------------------------------------------------------
 
 void BTreeIndex::scanNext(RecordId& outRid){
-    if(scanExecuting == false){
-        throw ScanNotInitializedException();
-    }
+	if(scanExecuting == false){
+		throw ScanNotInitializedException();
+	}
+	if(nextEntry == -1) {
+		throw new IndexScanCompletedException();
+	}
 }
 
 // -----------------------------------------------------------------------------
