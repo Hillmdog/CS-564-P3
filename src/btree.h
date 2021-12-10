@@ -291,6 +291,8 @@ class BTreeIndex {
    */
 	Operator	highOp;
 
+	int nextPageID;
+	
 	
  public:
 
