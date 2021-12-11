@@ -414,10 +414,6 @@ void BTreeIndex::startScan(const void* lowValParm,
 				   const void* highValParm,
 				   const Operator highOpParm)  
 {
-	// start with exception handling (need to probobly update what im passing to the exceptions)
-    	if (*lowOpParm > *highValParm) {
-        	throw BadScanrangeException();
-    	}
     	// check type ids
     	if (lowOpParm != 0 && lowOpParm != 1) {
         	throw BadOpcodesException();
@@ -442,6 +438,11 @@ void BTreeIndex::startScan(const void* lowValParm,
 	// can we assume low and highValParm will always point to ints?
 	int* localLow = reinterpret_cast<int*>(lowValParm);
 	int* localHigh = reinterpret_cast<int*>(highValParm);
+
+    // if low param is greater than high param throw error
+    if (*localHigh > *localLow) {
+       	throw BadScanrangeException();
+    }
 
 	// change what the values will be based on their operators
 	if (lowOpParam == 0) {
