@@ -415,23 +415,64 @@ void BTreeIndex::startScan(const void* lowValParm,
 				   const Operator highOpParm)  
 {
 	// start with exception handling (need to probobly update what im passing to the exceptions)
-    if (*lowOpParm > *highValParm) {
-        throw BadScanrangeException();
-    }
-    // check type ids
-    if (!typeid(lowOpParm).name() == "LT" && !typeid(lowOpParm).name() == "LTE") {
-        throw BadOpcodesException();
-    } 
-    if (!typeid(highValParm).name() == "GT" && !typeid(highValParm).name() == "GTE") {
-        throw BadOpcodeException();
-    }
-    
-    scanExecuting = true;
-    // get the root page
-    Page* current = NULL;
-    // not sure if this should be * or not
-    bufMgr->readPage(file, rootPageNum, current);   
-}
+    	if (*lowOpParm > *highValParm) {
+        	throw BadScanrangeException();
+    	}
+    	// check type ids
+    	if (lowOpParm != 0 && lowOpParm != 1) {
+        	throw BadOpcodesException();
+	} 
+    	if (highOpParm != 3 && highOpParm != 4) {
+       	 	throw BadOpcodeException();
+    	}
+
+	// end scan if one if already going on
+	if (scanExecuting) {
+		endScan();
+	}
+
+	// set scanExecuting to true
+	scanExecuting = TRUE;
+
+	// get root page to start
+	Page root = NULL;
+	bufMgr.readPage(file, rootPageNum, &root);
+	bufMgr.unPinPage(file, rootPageNum, &root);
+
+	// can we assume low and highValParm will always point to ints?
+	int* localLow = reinterpret_cast<int*>(lowValParm);
+	int* localHigh = reinterpret_cast<int*>(highValParm);
+
+	// change what the values will be based on their operators
+	if (lowOpParam == 0) {
+		localLow* += 1;
+	}
+	if (highValParm == 3) {
+		localHigh* -= 1;
+	}
+
+	// set scan variables
+	lowValInt = localLow*;
+	highValInt = localHigh*;
+
+	// find the first leaf node
+	// not sure how to tell if root is a leaf or not
+	leafNodeInt leaf;
+	try {
+		// if it is not the leaf
+		leaf = traverseTree(root, lowValInt, 0);
+	} catch {
+		// if it is a leaf
+		leaf = traverseTree(root, lowValInt, 1);
+	}
+	 Page* leafPage = reinterpret_cast<*Page>(&leaf)
+	 // pin the page? is there a better way?
+	 bufMgr.readPage(file, leafPage->page_number, leafPage);
+
+	 // is this all or should I also set next Entry
+
+}	
+
 
 // -----------------------------------------------------------------------------
 // BTreeIndex::scanNext
