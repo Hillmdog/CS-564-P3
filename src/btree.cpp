@@ -120,7 +120,7 @@ BTreeIndex::~BTreeIndex()
 LeafNodeInt traverseTree (Page current, int target, int level) {
     if (level != 1) {
 		// cast page to nonLeafNode
-		NonLeafNodeInt cur = reinterpret_cast<NonLeafNodeInt*>(&current);
+		NonLeafNodeInt* cur = reinterpret_cast<NonLeafNodeInt*>(&current);
 		LeafNodeInt next = NULL;
 		int flag = 0;
 		// search for next node
@@ -146,12 +146,12 @@ LeafNodeInt traverseTree (Page current, int target, int level) {
 		// leaf nodes!
 
 		// cast to leafNode
-		LeafNodeInt cur = reinterpret_cast<LeafNodeInt*>(&current);
+		LeafNodeInt* cur = reinterpret_cast<LeafNodeInt*>(&current);
 
 		// check if the target is in this node
 		for (int i = 0; i < INTARRAYLEAFSIZE; i ++) {
 			if (cur->keyArray[i] == target) {
-				return cur;
+				return current;
 			}
 		}
 
