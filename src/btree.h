@@ -328,8 +328,16 @@ class BTreeIndex {
     * @param target         target value
 **/
    
-   NonLeafNodeInt traverseTreeNonLeafNode (Page current, int target);
-
+   NonLeafNodeInt traverseTree (Page current, int target, int level);
+/**
+	*Recursivly iterates down the tree to find the lead node to insert target key and id into
+	*splits and propogates nodes back up tree if need be
+	*@param current		current page being interated through
+	*@param target		target key
+	*@param level		previous depth in the tree
+	*@param id		rid to be inserted into tree
+**/
+	NoneLeafNodeInt treeInsertNode(page current, int targetm int level, RecordID& id);
 
   /**
 	 * Insert a new entry using the pair <value,rid>. 
