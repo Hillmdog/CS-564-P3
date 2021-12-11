@@ -66,7 +66,6 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 			// end of file scan
 		}
 		fileScanner.~FileScan();
-		scanExecuting = false;
 	} else {
 		// if exists, open the index file
 		BTreeIndex::file = &BlobFile::open(outIndexName);
@@ -86,9 +85,11 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 			throw new BadIndexInfoException(outIndexName);
 		}
 		BTreeIndex::rootPageNum = btreeHeader->rootPageNo;
-		scanExecuting = false;
 	}
+	scanExecuting = false;
 	BTreeIndex::nextPageID = 3;
+	BTreeIndex::nodeOccupancy = ( Page::SIZE - sizeof( int ) - sizeof( PageId ) ) / ( sizeof( int ) + sizeof( PageId ) );
+	BTreeIndex::leafOccupancy = ( Page::SIZE - sizeof( PageId ) ) / ( sizeof( int ) + sizeof( RecordId ) );
 }
 
 
