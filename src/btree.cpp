@@ -142,6 +142,241 @@ NonLeafNodeInt traverseTreeNonLeafNode (Page current, int target) {
 
 
 // -----------------------------------------------------------------------------
+// BTreeIndex::treeInsertNode
+//------------------------------------------------------------------------------
+/*
+TODO:
+-Concerned about the root bieng created with null lists
+-insert nonleafnode that gets propgated back up
+-make sure all created nodes lists get set to null
+
+*/
+NonLeafNodeInt treeInsertNode(page current, int target, int level, RecordID& id) {
+	// if its a non leaf node
+	if (level == 0) {
+		// cast to non leaf node
+		NonLeafNodeInt cur = reinterpret_cast<NonLeafNodeInt*>(&current);
+		NonLeafNodeInt newNode = NULL;
+
+		int flag = -1;
+
+		//loop to find the next node
+		for (int i = 0; i < INTARRAYNONLEAFSIZE; i++) {
+			int curkey = keyArray[i];
+			// if the target is less than the current key
+			if (target < curkey) {
+				// recursive case # 1
+				flag = 1;
+				newNode = treeInsertNode(cur->pageNoArray[i], target, cur->level, id);
+				break;
+			}
+		}
+		// recursive case #2
+		if (flag == -1) {
+			newNode = reeInsertNode(cur->pageNoArray[INTARRAYNONLEAFSIZE], target, cur->level, id);
+		}
+		
+		// if nothing needs to be changed
+		if (newNode == NULL) {
+			return NULL;
+		}
+		
+		// if we need to add a nodes info to this node
+
+		// check if there is space
+		// geniune question: what if the key array is full but not the pageNo one
+		int space = 0;
+		for (int i = 0; i < INTARRAYNONLEAFSIZE; i++) {
+			if (cur->keyArray[i] == NULL) {
+				space = 1;
+				break;
+			}
+		}
+
+		// if there is space
+		if (space) {
+			// extract middle key and pageNos
+
+			// add them into the current node
+
+			// return null;
+
+
+	} else {
+		// create new page
+		// unpin page and increment nextPageID
+
+		// cast page to node
+
+		// set all values in arrays of newNode to null
+
+		//calc halfindex
+		//get middlekey
+		// get middlekeys pageNos
+
+		//populate new nodes arrays with the old stuff except for the middle key and its pageNos
+
+		// insert extracted target key and pagenos into correct node
+		// if statement for old node
+		// if statement for new node
+
+		// create new node to pass up and give it the middlekey and pagenos
+		// return newNode;
+
+	}
+
+
+	} else {
+		// cast to leafNode
+		LeafNodeInt cur = reinterpret_cast<LeafNodeInt*>(&current);
+
+		// check if there is space in arrays
+		int space = 0;
+		for (int i = 0; i < INTARRAYLEAFSIZE; i++) {
+			if (cur->keyArray[i] == NULL) {
+				space = 1;
+				break;
+			}
+		}
+
+		// if there is space
+		if (space) {
+			// create temp new arrays
+			int tempKey[INTARRAYLEAFSIZE];
+			RecordID temprid[INTARRAYLEAFSIZE];
+
+			// find pos for target key and rid to fit into
+			int pos = -1;
+			int flag = -1;
+			for (int i  = 0; i < INTARRAYLEAFSIZE-1; i ++) {
+				if (cur->keyArray[i] < target && cur->keyArray[i] != NULL) {
+					tempKey[i] = cur->keyArray[i];
+					temprid[i] = cur->keyArray[i];
+				} else if (flag == -1) {
+					pos = i;
+					flag = 0;
+				}
+				if (cur->keyArray[i] > target) {
+					tempKey[i+i] = cur->keyArray[i];
+					temprid[i+1] = cur->ridArray[i];
+				}
+			}
+
+			// add target key and id
+			tempkey[pos] = target;
+			temprid[pos] = id;
+
+			// return null if no propogation or splitting is needed
+			return NULL;
+
+		// hard case
+		} else { // arrays need to be split
+			// create new node and page
+			Page newPage;
+			bufMgr.allocPage(file, nextPageID, &newPage);
+			bufMgr.unPinPage(file, nextPageID, &newPage); // unpinpage
+			LeafNodeInt newNode = reinterpret_cast<LeafNodeInt*>(&newPage);
+			nextPageID += 1;
+
+			// set all values of newNodes arrays to null
+			for (int i = 0; i < INTARRAYLEAFSIZE; i++) {
+				newNode->keyArray[i] = NULL;
+				nwNode->ridArray[i] = NULL;
+			}
+
+			// set the middle key
+			int halfindex = INTARRAYLEAFSIZE/2;
+			int middleKey = cur->keyArray[halfindex];
+		
+			//populate arrays with old stuff
+			for (int i = halfindex; i < INTARRAYLEAFSIZE; i++) {
+				newNode->keyArray[i-halfindex] = cur->keyArray[i];
+				newNode->ridArray[i-halfindex] = cur->ridArray[i];
+
+				// remove old value
+				cur->keyArray[i] = NULL;
+				cur->ridArray[i] = NULL;
+			}
+
+			// insert target key and rid into either the old node or the new one
+			// create temp new arrays
+			int tempKey[INTARRAYLEAFSIZE];
+			RecordID temprid[INTARRAYLEAFSIZE];
+			
+			// if the target is going into the old node
+			if (target < middleKey) {
+				int pos = -1;
+				int flag = -1;
+				for (int i = 0; i < halfindex; i++) {
+					if (cur->keyArray[i] < target && cur->keyArray != NULL) {
+						tempKey[i] = cur->keyArray[i];
+						temprid[i] = cur->ridArray[i];
+					} else if (flag == -1) {
+						pos = i;
+						flag = 0;
+					}
+					if (cur->keyArray[i] > target){
+						tempKey[i+1] = cur->keyArray[i];
+						temprid[i+1] = cur->ridArray[i];
+					}
+				}
+
+				tempKey[pos] = target;
+				temprid[pos] = rid;
+				cur->keyArray = tempKey;
+				cur->ridArray = temprid;
+			
+			// if target goes into new node							
+			} else {
+				int pos = -1;
+				int flag = -1;
+				for (int i = 0; i < halfindex; i++) {
+					if (newNode->keyArray[i] < target && newNode->keyArray[i] != NULL) {
+						tempKey[i] = newNode->keyArray[i];
+						temprid[i] = newNode->ridArray[i];
+					} else if (flag == -1) {
+						pos = i;
+						flag = 0;
+					}
+					if (newNode->keyArray[i] > target){
+						tempKey[i+1] = arr[i];
+						temprid[i+1] = newNode->ridArray[i];
+					}
+				}
+
+				tempKey[pos] = target;
+				temprid[pos] = rid;
+				newNode->keyArray = tempKey;
+				newNode->ridArray = temprid;
+				}
+
+			// fix the linked list
+			// fix the linked list
+			newNode->rightSibPageNo = cur->rightSibPageNo;
+			cur->rightSibPageNo = nextPageID;
+
+			// create new nonLeafode and set middle key to it
+			Page tempPage;
+			bufMgr.allocPage(file, nextPageID, &tempPage);
+			bufmgr.unPinPage(file, nextPageID, &tempPage); // unpin page
+			NonLeafNodeInt tempNode = reintrepret_cast<NonLeafNodeInt*>(&newPage);
+			// don't incrmenet the page no becasue this node is only temporary!
+			//nextPageID+=1;
+
+			// set its junk
+			tempNode->level = 1;
+			// need help with this
+			tempNode->keyArray[0] = middleKey;
+			tempNode->pageNoArray[0] = // old node
+			tempNode->pageNoArray[1] = // new node
+
+			return tempNode;
+		}
+	}
+}	
+	
+
+// -----------------------------------------------------------------------------
 // BTreeIndex::insertEntry
 // -----------------------------------------------------------------------------
 
