@@ -424,7 +424,7 @@ void BTreeIndex::scanNext(RecordId& outRid){
 	}
 	LeafNodeInt *node = (LeafNodeInt *) currentPageData;
 	outRid = leafNode->ridArray[nextEntry];
-	if (outRid.page_number == 0 || nextEntry == INTARRAYLEAFSIZE) {
+	if (nextEntry == INTARRAYLEAFSIZE || outRid.page_number == 0) {
 		nextEntry = 0;
 		bufMgr->unPinPage(file, currentPageNum, false);
 		currentPageNum = node->rightSibPageNo;
