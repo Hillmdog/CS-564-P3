@@ -114,33 +114,52 @@ BTreeIndex::~BTreeIndex()
 }
 
 // -----------------------------------------------------------------------------
-// BTreeIndex::traverseTreeNonLeafNode
+// BTreeIndex::traverseTree
 //------------------------------------------------------------------------------
 
-NonLeafNodeInt traverseTreeNonLeafNode (Page current, int target) {
-    // cast current to nonLeafNode
-    NonLeafNodeInt* cur = reinterpret_cast<NonLeafNodeInt*>(&current);
+LeafNodeInt traverseTree (Page current, int target, int level) {
+    if (level != 1) {
+		// cast page to nonLeafNode
+		NonLeafNodeInt cur = reinterpret_cast<NonLeafNodeInt*>(&current);
+		LeafNodeInt next = NULL;
+		int flag = 0;
+		// search for next node
+		for (int i = 0; i < INTARRAYNONLEAFSIZE; i++) {
+			int curkey = cur->keyArray[i];
 
-    // base case
-    // returns parent to target leaf
-    if (cur->level == 1) {
-        return *cur; // or current which ever is more useful we can change this
-    }
+			// if the target is less than the current key
+			if (target < curkey) {
+				// recursive case #1
+				flag = 1;
+				next = traverseTree(cur->pageNoArray[i], target, cur->level);
+				break;
+			}
 
-    // loop to find next node
-    for (int i = 0; i < sizeof(cur->keyArray); i++) {
-        int curkey = cur->keyArray[i];
-        
-        // recursive case #1
-        if (curkey > target) {
-            return traverseTreeNonLeafNode(cur->pageNoArray[i], target);
-        }
-    }
+		}
+		if (flag == 0) {
+			next = traverseTree(cur->pageNoArray[INTARRAYNONLEAFSIZE], target, cur->level);
+		}
 
-    // recursize case #2
-    return traverseTreeNonLeafNode(cur->pageNoArray.back(), target);
+		return next;
+
+	} else {
+		// leaf nodes!
+
+		// cast to leafNode
+		LeafNodeInt cur = reinterpret_cast<LeafNodeInt*>(&current);
+
+		// check if the target is in this node
+		for (int i = 0; i < INTARRAYLEAFSIZE; i ++) {
+			if (cur->keyArray[i] == target) {
+				return cur;
+			}
+		}
+
+		// did not find the target
+		return NULL;		
+	}
+
 }
-
 
 // -----------------------------------------------------------------------------
 // BTreeIndex::treeInsertNode
