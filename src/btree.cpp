@@ -422,17 +422,21 @@ void BTreeIndex::scanNext(RecordId& outRid){
 	if(scanExecuting == false){
 		throw ScanNotInitializedException();
 	}
+	LeafNodeInt *node = (LeafNodeInt *) currentPageData;
+	outRid = leafNode->ridArray[nextEntry];
+	if (outRid.page_number == 0 || nextEntry == INTARRAYLEAFSIZE) {
+		nextEntry = 0;
+		bufMgr->unPinPage(file, currentPageNum, false);
+		currentPageNum = node->rightSibPageNo;
+  		bufMgr->readPage(file, currentPageNum, currentPageData);
+ 		node = (LeafNodeInt *) currentPageData;
+	}	
 	if(nextEntry == -1) {
 		throw IndexScanCompletedException();
 	}
-	LeafNodeInt *node = (LeafNodeInt *) currentPageData;
-	outRid = leafNode->ridArray[nextEntry];
-
-	nextEntry = 0;
-	bufMgr->unPinPage(file, currentPageNum, false);
-
-	currentPageNum = node->rightSibPageNo;
-  	bufMgr->readPage(file, currentPageNum, currentPageData);
+	else{
+		nextEntry++;
+	}
 }
 
 // -----------------------------------------------------------------------------
