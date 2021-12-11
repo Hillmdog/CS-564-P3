@@ -171,18 +171,18 @@ TODO:
 -make sure all created nodes lists get set to null
 
 */
-NonLeafNodeInt treeInsertNode(page current, int target, int level, RecordID& id) {
+NonLeafNodeInt treeInsertNode(page current, int target, int level, RecordID* id) {
 	// if its a non leaf node
-	if (level == 0) {
+	if (level != 1) {
 		// cast to non leaf node
-		NonLeafNodeInt cur = reinterpret_cast<NonLeafNodeInt*>(&current);
+		NonLeafNodeInt* cur = reinterpret_cast<NonLeafNodeInt*>(&current);
 		NonLeafNodeInt newNode = NULL;
 
 		int flag = -1;
 
 		//loop to find the next node
 		for (int i = 0; i < INTARRAYNONLEAFSIZE; i++) {
-			int curkey = keyArray[i];
+			int curkey = cur->keyArray[i];
 			// if the target is less than the current key
 			if (target < curkey) {
 				// recursive case # 1
@@ -248,7 +248,7 @@ NonLeafNodeInt treeInsertNode(page current, int target, int level, RecordID& id)
 
 	} else {
 		// cast to leafNode
-		LeafNodeInt cur = reinterpret_cast<LeafNodeInt*>(&current);
+		LeafNodeInt* cur = reinterpret_cast<LeafNodeInt*>(&current);
 
 		// check if there is space in arrays
 		int space = 0;
