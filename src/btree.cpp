@@ -117,7 +117,7 @@ BTreeIndex::~BTreeIndex()
 // BTreeIndex::traverseTree
 //------------------------------------------------------------------------------
 
-LeafNodeInt traverseTree (Page current, int target, int level) {
+LeafNodeInt BTreeIndex::traverseTree (Page current, int target, int level) {
     if (level != 1) {
 		// cast page to nonLeafNode
 		NonLeafNodeInt* cur = reinterpret_cast<NonLeafNodeInt*>(&current);
@@ -176,7 +176,7 @@ TODO:
 -make sure all created nodes lists get set to null
 
 */
-NonLeafNodeInt* treeInsertNode(Page current, int target, int level, RecordId id) {
+NonLeafNodeInt* BTreeIndex::treeInsertNode(Page current, int target, int level, RecordId& id) {
 	// if its a non leaf node
 	if (level != 1) {
 		// cast to non leaf node
@@ -326,8 +326,9 @@ NonLeafNodeInt* treeInsertNode(Page current, int target, int level, RecordId id)
 		} else { // arrays need to be split
 			// create new node and page
 			Page* newPage = nullptr;
-			bufMgr->allocPage(file, nextPageID, &newPage);
-			bufMgr->unPinPage(file, nextPageID, &newPage); // unpinpage
+			PageId nextPageId = nextPageID;
+			bufMgr->allocPage(file, nextPageId, newPage);
+			bufMgr->unPinPage(file, nextPageId, true); // unpinpage
 			LeafNodeInt* newNode = reinterpret_cast<LeafNodeInt*>(&newPage);
 			nextPageID += 1;
 
@@ -413,9 +414,10 @@ NonLeafNodeInt* treeInsertNode(Page current, int target, int level, RecordId id)
 			cur->rightSibPageNo = nextPageID;
 
 			// create new nonLeafode and set middle key to it
-			Page tempPage;
-			bufMgr.allocPage(file, nextPageID, &tempPage);
-			bufMgr.unPinPage(file, nextPageID, &tempPage); // unpin page
+			Page* tempPage = nullptr;
+			PageId nextPageId = nextPageID;
+			bufMgr->allocPage(file, nextPageId, tempPage);
+			bufMgr->unPinPage(file, nextPageId, true); // unpin page
 			NonLeafNodeInt* tempNode = reinterpret_cast<NonLeafNodeInt*>(&newPage);
 			// don't incrmenet the page no becasue this node is only temporary!
 			//nextPageID+=1;
