@@ -131,13 +131,17 @@ LeafNodeInt traverseTree (Page current, int target, int level) {
 			if (target < curkey) {
 				// recursive case #1
 				flag = 1;
-				next = traverseTree(cur->pageNoArray[i], target, cur->level);
+				Page* curPage = nullptr; 
+				bufMgr->readPage(file, cur->pageNoArray[i], curPage);
+				next = traverseTree(*curPage, target, cur->level);
 				break;
 			}
 
 		}
 		if (flag == 0) {
-			next = traverseTree(cur->pageNoArray[INTARRAYNONLEAFSIZE], target, cur->level);
+			Page* nextPage = nullptr; 
+			bufMgr->readPage(file, cur->pageNoArray[INTARRAYNONLEAFSIZE-1], nextPage);
+			next = traverseTree(*nextPage, target, cur->level);
 		}
 
 		return next;
@@ -151,12 +155,13 @@ LeafNodeInt traverseTree (Page current, int target, int level) {
 		// check if the target is in this node
 		for (int i = 0; i < INTARRAYLEAFSIZE; i ++) {
 			if (cur->keyArray[i] == target) {
-				return current;
+				return *cur;
 			}
 		}
 
 		// did not find the target
-		return NULL;		
+		LeafNodeInt* none = nullptr;
+		return *none;
 	}
 
 }
@@ -171,12 +176,12 @@ TODO:
 -make sure all created nodes lists get set to null
 
 */
-NonLeafNodeInt treeInsertNode(Page current, int target, int level, RecordId id) {
+NonLeafNodeInt* treeInsertNode(Page current, int target, int level, RecordId id) {
 	// if its a non leaf node
 	if (level != 1) {
 		// cast to non leaf node
 		NonLeafNodeInt* cur = reinterpret_cast<NonLeafNodeInt*>(&current);
-		NonLeafNodeInt newNode = NULL;
+		NonLeafNodeInt* newNode;
 
 		int flag = -1;
 
@@ -187,18 +192,22 @@ NonLeafNodeInt treeInsertNode(Page current, int target, int level, RecordId id) 
 			if (target < curkey) {
 				// recursive case # 1
 				flag = 1;
-				newNode = treeInsertNode(cur->pageNoArray[i], target, cur->level, id);
+				Page* curPage = nullptr; 
+				bufMgr->readPage(file, cur->pageNoArray[i], curPage);
+				newNode = treeInsertNode(*curPage, target, cur->level, id);
 				break;
 			}
 		}
 		// recursive case #2
 		if (flag == -1) {
-			newNode = reeInsertNode(cur->pageNoArray[INTARRAYNONLEAFSIZE], target, cur->level, id);
+			Page* curPage = nullptr; 
+			bufMgr->readPage(file, cur->pageNoArray[INTARRAYNONLEAFSIZE], curPage);
+			newNode = treeInsertNode(*curPage, target, cur->level, id);
 		}
 		
 		// if nothing needs to be changed
-		if (newNode == NULL) {
-			return NULL;
+		if (newNode == nullptr) {
+			return nullptr;
 		}
 		
 		// if we need to add a nodes info to this node
@@ -217,11 +226,11 @@ NonLeafNodeInt treeInsertNode(Page current, int target, int level, RecordId id) 
 		if (space) {
 			// extract middle key and pageNos from returnedNode
 			int middleKey = newNode->keyArray[0];
-			PageID page1 = newNode->pageNoArray[0];
-			PageID page2 = newNode->pageNoArray[1];
+			PageId page1 = newNode->pageNoArray[0];
+			PageId page2 = newNode->pageNoArray[1];
 
 			int tempKey[INTARRAYLEAFSIZE];
-			PageID temppid[INTARRAYLEAFSIZE+1];
+			PageId temppid[INTARRAYLEAFSIZE+1];
 			// add them into the current node
 			int pos = -1;
 			int flag = -1;
@@ -235,7 +244,7 @@ NonLeafNodeInt treeInsertNode(Page current, int target, int level, RecordId id) 
 				}
 				if (cur->keyArray[i] > target) {
 					tempKey[i+1] = cur->keyArray[i];
-					temppid[i+2] = cur->pageNoArray[i]
+					temppid[i+2] = cur->pageNoArray[i];
 				}
 			}
 
@@ -243,9 +252,9 @@ NonLeafNodeInt treeInsertNode(Page current, int target, int level, RecordId id) 
 			tempKey[pos] = middleKey;
 			temppid[pos] = page1;
 			// potential place of failure
-			temppid[pos+1] = page2
+			temppid[pos+1] = page2;
 
-			return null;
+			return nullptr;
 		} else {
 			// create new page
 			// unpin page and increment nextPageID
@@ -316,16 +325,16 @@ NonLeafNodeInt treeInsertNode(Page current, int target, int level, RecordId id) 
 		// hard case
 		} else { // arrays need to be split
 			// create new node and page
-			Page newPage;
-			bufMgr.allocPage(file, nextPageID, &newPage);
-			bufMgr.unPinPage(file, nextPageID, &newPage); // unpinpage
+			Page* newPage = nullptr;
+			bufMgr->allocPage(file, nextPageID, &newPage);
+			bufMgr->unPinPage(file, nextPageID, &newPage); // unpinpage
 			LeafNodeInt* newNode = reinterpret_cast<LeafNodeInt*>(&newPage);
 			nextPageID += 1;
 
 			// set all values of newNodes arrays to null
 			for (int i = 0; i < INTARRAYLEAFSIZE; i++) {
 				newNode->keyArray[i] = NULL;
-				newNode->ridArray[i] = NULL;
+				// newNode->ridArray[i] = NULL;
 			}
 
 			// set the middle key
@@ -339,7 +348,7 @@ NonLeafNodeInt treeInsertNode(Page current, int target, int level, RecordId id) 
 
 				// remove old value
 				cur->keyArray[i] = NULL;
-				cur->ridArray[i] = NULL;
+				// cur->ridArray[i] = NULL;
 			}
 
 			// insert target key and rid into either the old node or the new one
@@ -416,7 +425,7 @@ NonLeafNodeInt treeInsertNode(Page current, int target, int level, RecordId id) 
 			// need help with this
 			tempNode->keyArray[0] = middleKey;
 			Page* oldPage = reinterpret_cast<Page*>(&cur);
-			Page* newPage = reinterpret_cast<Page*>(&newNode);
+			// Page* newPage = reinterpret_cast<Page*>(newNode);
 			tempNode->pageNoArray[0] = oldPage->page_number();// old node
 			tempNode->pageNoArray[1] = newPage->page_number();// new node
 
