@@ -221,6 +221,13 @@ void insertIntoNonLeaf(NonLeafNodeInt* tempNode, NonLeafNodeInt* cur) {
 	temppid[pos] = page1;
 	// potential place of failure
 	temppid[pos+1] = page2;
+	
+	for (int i  = 0; i < INTARRAYNONLEAFSIZE; i++) {
+		cur->keyArray[i] = tempKey[i];
+	}
+	for (int i  = 0; i < INTARRAYNONLEAFSIZE+1; i++) {
+		cur->pageNoArray[i] = temppid[i];
+	}
 
 }
 
