@@ -215,35 +215,59 @@ NonLeafNodeInt treeInsertNode(page current, int target, int level, RecordID* id)
 
 		// if there is space
 		if (space) {
-			// extract middle key and pageNos
+			// extract middle key and pageNos from returnedNode
+			int middleKey = newNode->keyArray[0];
+			PageID page1 = newNode->pageNoArray[0];
+			PageID page2 = newNode->pageNoArray[1];
 
+			int tempKey[INTARRAYLEAFSIZE];
+			PageID temppid[INTARRAYLEAFSIZE+1];
 			// add them into the current node
+			int pos = -1;
+			int flag = -1;
+			for (int i = 0; i < INTARRAYNONLEAFSIZE-1; i++) {
+				if (cur->keyArray[i] < middleKey && cur->keyArray[i] != NULL) {
+					tempKey[i] = cur->keyArray[i];
+					temppid[i] = cur->pageNoArray[i];
+				} else if (flag == -1) {
+					pos = i;
+					flag = 0;
+				}
+				if (cur->keyArray[i] > target) {
+					tempKey[i+1] = cur->keyArray[i];
+					temppid[i+2] = cur->pageNoArray[i]
+				}
+			}
 
-			// return null;
+			// add new key and pages
+			tempKey[pos] = middleKey;
+			temppid[pos] = page1;
+			// potential place of failure
+			temppid[pos+1] = page2
 
+			return null;
+		} else {
+			// create new page
+			// unpin page and increment nextPageID
 
-	} else {
-		// create new page
-		// unpin page and increment nextPageID
+			// cast page to node
 
-		// cast page to node
+			// set all values in arrays of newNode to null
 
-		// set all values in arrays of newNode to null
+			//calc halfindex
+			//get middlekey
+			// get middlekeys pageNos
 
-		//calc halfindex
-		//get middlekey
-		// get middlekeys pageNos
+			//populate new nodes arrays with the old stuff except for the middle key and its pageNos
 
-		//populate new nodes arrays with the old stuff except for the middle key and its pageNos
+			// insert extracted target key and pagenos into correct node
+			// if statement for old node
+			// if statement for new node
 
-		// insert extracted target key and pagenos into correct node
-		// if statement for old node
-		// if statement for new node
+			// create new node to pass up and give it the middlekey and pagenos
+			// return newNode;
 
-		// create new node to pass up and give it the middlekey and pagenos
-		// return newNode;
-
-	}
+		}
 
 
 	} else {
