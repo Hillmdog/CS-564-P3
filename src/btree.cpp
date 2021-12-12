@@ -198,23 +198,39 @@ void insertIntoNonLeaf(NonLeafNodeInt* tempNode, NonLeafNodeInt* cur) {
 	int tempKey[INTARRAYLEAFSIZE];
 	PageId temppid[INTARRAYLEAFSIZE+1];
 	// add them into the current node
-	// this probobly needs work
-	// need to replace old pointer
+	
+	// find pos first
 	int pos = -1;
-	int flag = -1;
-	for (int i = 0; i < INTARRAYNONLEAFSIZE-1; i++) {
-		if (cur->keyArray[i] < middleKey && cur->keyArray[i] != NULL) {
-			tempKey[i] = cur->keyArray[i];
-			temppid[i] = cur->pageNoArray[i];
-		} else if (flag == -1) {
+	for (int i = 0; i < INTARRAYLEAFNONSIZE; i++) {
+		if (cur->keyArray[i] > middlekey) {
 			pos = i;
-			flag = 0;
-		}
-		if (cur->keyArray[i] > target) {
-			tempKey[i+1] = cur->keyArray[i];
-			temppid[i+2] = cur->pageNoArray[i];
+			break
 		}
 	}
+
+	for (int i = 0; i < INTARRAYLEAFNONSIZE-1; i++) {
+		if ( i < pos) {
+			tempkey[i] = cur->keyArray[i];
+		} else {
+			tempkey[i+1] = cur->keyArray[i];
+		}
+	}
+
+	// set middlekey
+	tempkey[pos] = middleKey;
+
+	// loop for pageNoArray
+	for (int i = 0; INTARRAYLEAFSIZE; i++) {
+		if ( i < pos) {
+			temppid[i] = cur->pageNoArray[i];
+		} else if (i > pos) {
+			temppid[i+1] = cur->pageNoArray[i];
+		}
+	}
+
+	// set pageIds
+	temppid[pos] = page1;
+	temppid[pos+1] = page2;
 
 	// add new key and pages
 	tempKey[pos] = middleKey;
