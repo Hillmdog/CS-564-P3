@@ -99,7 +99,7 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 
 BTreeIndex::~BTreeIndex()
 {
-	scanExecuting = false;
+	// scanExecuting = false;
 	endScan();
 	// assuming all pinned papges are unpinned as soon as the btree finishes using them.
 	try {
@@ -121,7 +121,7 @@ LeafNodeInt traverseTree (Page current, int target, int level) {
     if (level != 1) {
 		// cast page to nonLeafNode
 		NonLeafNodeInt* cur = reinterpret_cast<NonLeafNodeInt*>(&current);
-		LeafNodeInt next = NULL;
+		LeafNodeInt next;
 		int flag = 0;
 		// search for next node
 		for (int i = 0; i < INTARRAYNONLEAFSIZE; i++) {
@@ -171,7 +171,7 @@ TODO:
 -make sure all created nodes lists get set to null
 
 */
-NonLeafNodeInt treeInsertNode(page current, int target, int level, RecordID* id) {
+NonLeafNodeInt treeInsertNode(Page current, int target, int level, RecordId* id) {
 	// if its a non leaf node
 	if (level != 1) {
 		// cast to non leaf node
@@ -263,7 +263,7 @@ NonLeafNodeInt treeInsertNode(page current, int target, int level, RecordID* id)
 		if (space) {
 			// create temp new arrays
 			int tempKey[INTARRAYLEAFSIZE];
-			RecordID temprid[INTARRAYLEAFSIZE];
+			RecordId temprid[INTARRAYLEAFSIZE];
 
 			// find pos for target key and rid to fit into
 			int pos = -1;
@@ -271,7 +271,7 @@ NonLeafNodeInt treeInsertNode(page current, int target, int level, RecordID* id)
 			for (int i  = 0; i < INTARRAYLEAFSIZE-1; i ++) {
 				if (cur->keyArray[i] < target && cur->keyArray[i] != NULL) {
 					tempKey[i] = cur->keyArray[i];
-					temprid[i] = cur->keyArray[i];
+					temprid[i] = cur->ridArray[i];
 				} else if (flag == -1) {
 					pos = i;
 					flag = 0;
@@ -283,8 +283,8 @@ NonLeafNodeInt treeInsertNode(page current, int target, int level, RecordID* id)
 			}
 
 			// add target key and id
-			tempkey[pos] = target;
-			temprid[pos] = id;
+			tempKey[pos] = target;
+			temprid[pos] = *id;
 
 			// return null if no propogation or splitting is needed
 			return NULL;
@@ -295,13 +295,13 @@ NonLeafNodeInt treeInsertNode(page current, int target, int level, RecordID* id)
 			Page newPage;
 			bufMgr.allocPage(file, nextPageID, &newPage);
 			bufMgr.unPinPage(file, nextPageID, &newPage); // unpinpage
-			LeafNodeInt newNode = reinterpret_cast<LeafNodeInt*>(&newPage);
+			LeafNodeInt* newNode = reinterpret_cast<LeafNodeInt*>(&newPage);
 			nextPageID += 1;
 
 			// set all values of newNodes arrays to null
 			for (int i = 0; i < INTARRAYLEAFSIZE; i++) {
 				newNode->keyArray[i] = NULL;
-				nwNode->ridArray[i] = NULL;
+				newNode->ridArray[i] = NULL;
 			}
 
 			// set the middle key
@@ -321,7 +321,7 @@ NonLeafNodeInt treeInsertNode(page current, int target, int level, RecordID* id)
 			// insert target key and rid into either the old node or the new one
 			// create temp new arrays
 			int tempKey[INTARRAYLEAFSIZE];
-			RecordID temprid[INTARRAYLEAFSIZE];
+			RecordId temprid[INTARRAYLEAFSIZE];
 			
 			// if the target is going into the old node
 			if (target < middleKey) {
@@ -342,8 +342,8 @@ NonLeafNodeInt treeInsertNode(page current, int target, int level, RecordID* id)
 				}
 
 				tempKey[pos] = target;
-				temprid[pos] = rid;
-				cur->keyArray = tempKey;
+				temprid[pos] = *id;
+				cur->keyArray = tempKey; // try Loop
 				cur->ridArray = temprid;
 			
 			// if target goes into new node							
@@ -359,13 +359,13 @@ NonLeafNodeInt treeInsertNode(page current, int target, int level, RecordID* id)
 						flag = 0;
 					}
 					if (newNode->keyArray[i] > target){
-						tempKey[i+1] = arr[i];
+						tempKey[i+1] = newNode->keyArray[i];
 						temprid[i+1] = newNode->ridArray[i];
 					}
 				}
 
 				tempKey[pos] = target;
-				temprid[pos] = rid;
+				temprid[pos] = *id;
 				newNode->keyArray = tempKey;
 				newNode->ridArray = temprid;
 				}
@@ -378,8 +378,8 @@ NonLeafNodeInt treeInsertNode(page current, int target, int level, RecordID* id)
 			// create new nonLeafode and set middle key to it
 			Page tempPage;
 			bufMgr.allocPage(file, nextPageID, &tempPage);
-			bufmgr.unPinPage(file, nextPageID, &tempPage); // unpin page
-			NonLeafNodeInt tempNode = reintrepret_cast<NonLeafNodeInt*>(&newPage);
+			bufMgr.unPinPage(file, nextPageID, &tempPage); // unpin page
+			NonLeafNodeInt* tempNode = reinterpret_cast<NonLeafNodeInt*>(&newPage);
 			// don't incrmenet the page no becasue this node is only temporary!
 			//nextPageID+=1;
 
@@ -419,7 +419,7 @@ void BTreeIndex::startScan(const void* lowValParm,
         	throw BadOpcodesException();
 	} 
     	if (highOpParm != 3 && highOpParm != 4) {
-       	 	throw BadOpcodeException();
+       	 	throw BadOpcodesException();
     	}
 
 	// end scan if one if already going on
@@ -428,47 +428,48 @@ void BTreeIndex::startScan(const void* lowValParm,
 	}
 
 	// set scanExecuting to true
-	scanExecuting = TRUE;
+	scanExecuting = true;
 
 	// get root page to start
-	Page root = NULL;
-	bufMgr.readPage(file, rootPageNum, &root);
-	bufMgr.unPinPage(file, rootPageNum, &root);
+	Page* root = nullptr;
+	bufMgr->readPage(file, rootPageNum, root);
+	bufMgr->unPinPage(file, rootPageNum, root);
 
 	// can we assume low and highValParm will always point to ints?
-	int* localLow = reinterpret_cast<int*>(lowValParm);
-	int* localHigh = reinterpret_cast<int*>(highValParm);
+	int localLow = *(reinterpret_cast<int*>(&lowValParm));
+	// int localLow = *((int *)(lowValParm));
+	int localHigh = *(reinterpret_cast<int*>(&highValParm));
 
     // if low param is greater than high param throw error
-    if (*localHigh > *localLow) {
+    if (localHigh > localLow) {
        	throw BadScanrangeException();
     }
 
 	// change what the values will be based on their operators
-	if (lowOpParam == 0) {
-		localLow* += 1;
+	if (lowOpParm == 0) {
+		localLow += 1;
 	}
-	if (highValParm == 3) {
-		localHigh* -= 1;
+	if (highOpParm == 3) {
+		localHigh -= 1;
 	}
 
 	// set scan variables
-	lowValInt = localLow*;
-	highValInt = localHigh*;
+	lowValInt = localLow;
+	highValInt = localHigh;
 
 	// find the first leaf node
 	// not sure how to tell if root is a leaf or not
-	leafNodeInt leaf;
+	LeafNodeInt leaf;
 	try {
 		// if it is not the leaf
-		leaf = traverseTree(root, lowValInt, 0);
-	} catch {
+		leaf = traverseTree(*root, lowValInt, 0);
+	} catch (BadgerDbException e) {
 		// if it is a leaf
-		leaf = traverseTree(root, lowValInt, 1);
+		leaf = traverseTree(*root, lowValInt, 1);
 	}
-	 Page* leafPage = reinterpret_cast<*Page>(&leaf)
+	 Page* leafPage = reinterpret_cast<Page*>(&leaf);
 	 // pin the page? is there a better way?
-	 bufMgr.readPage(file, leafPage->page_number, leafPage);
+	 bufMgr->readPage(file, leafPage->page_number(), leafPage);
 
 	 // is this all or should I also set next Entry
 
@@ -484,7 +485,7 @@ void BTreeIndex::scanNext(RecordId& outRid){
 		throw ScanNotInitializedException();
 	}
 	LeafNodeInt *node = (LeafNodeInt *) currentPageData;
-	outRid = leafNode->ridArray[nextEntry];
+	outRid = node->ridArray[nextEntry];
 	if (nextEntry == INTARRAYLEAFSIZE || outRid.page_number == 0) {
 		nextEntry = 0;
 		bufMgr->unPinPage(file, currentPageNum, false);
