@@ -171,7 +171,7 @@ TODO:
 -make sure all created nodes lists get set to null
 
 */
-NonLeafNodeInt treeInsertNode(Page current, int target, int level, RecordId* id) {
+NonLeafNodeInt treeInsertNode(Page current, int target, int level, RecordId id) {
 	// if its a non leaf node
 	if (level != 1) {
 		// cast to non leaf node
@@ -308,7 +308,7 @@ NonLeafNodeInt treeInsertNode(Page current, int target, int level, RecordId* id)
 
 			// add target key and id
 			tempKey[pos] = target;
-			temprid[pos] = *id;
+			temprid[pos] = id;
 
 			// return null if no propogation or splitting is needed
 			return NULL;
@@ -366,9 +366,11 @@ NonLeafNodeInt treeInsertNode(Page current, int target, int level, RecordId* id)
 				}
 
 				tempKey[pos] = target;
-				temprid[pos] = *id;
-				cur->keyArray = tempKey; // try Loop
-				cur->ridArray = temprid;
+				temprid[pos] = id;
+				for (int i = 0; i < INTARRAYLEAFSIZE; i++) {
+					cur->keyArray[i] = tempKey[i];
+					cur->ridArray[i] = temprid[i];
+				}
 			
 			// if target goes into new node							
 			} else {
@@ -389,10 +391,12 @@ NonLeafNodeInt treeInsertNode(Page current, int target, int level, RecordId* id)
 				}
 
 				tempKey[pos] = target;
-				temprid[pos] = *id;
-				newNode->keyArray = tempKey;
-				newNode->ridArray = temprid;
+				temprid[pos] = id;
+				for (int i = 0; i < INTARRAYLEAFSIZE; i++) {
+					cur->keyArray[i] = tempKey[i];
+					cur->ridArray[i] = temprid[i];
 				}
+			}
 
 			// fix the linked list
 			// fix the linked list
@@ -411,8 +415,10 @@ NonLeafNodeInt treeInsertNode(Page current, int target, int level, RecordId* id)
 			tempNode->level = 1;
 			// need help with this
 			tempNode->keyArray[0] = middleKey;
-			tempNode->pageNoArray[0] = // old node
-			tempNode->pageNoArray[1] = // new node
+			Page* oldPage = reinterpret_cast<Page*>(&cur);
+			Page* newPage = reinterpret_cast<Page*>(&newNode);
+			tempNode->pageNoArray[0] = oldPage->page_number();// old node
+			tempNode->pageNoArray[1] = newPage->page_number();// new node
 
 			return tempNode;
 		}
