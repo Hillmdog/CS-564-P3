@@ -339,6 +339,10 @@ class BTreeIndex {
 **/
 	NonLeafNodeInt* treeInsertNode(Page current, int target, int level, RecordId& id);
 
+   void insertIntoNonLeaf(NonLeafNodeInt* tempNode, NonLeafNodeInt* cur);
+
+   void splitLeafNode(LeafNodeInt* cur, NonLeafNodeInt* tempNode, int target, RecordId id);
+
   /**
 	 * Insert a new entry using the pair <value,rid>. 
 	 * Start from root to recursively find out the leaf to insert the entry in. The insertion may cause splitting of leaf node.

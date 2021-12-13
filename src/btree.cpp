@@ -189,7 +189,7 @@ void splitNonLeaf(NonLeafNodeInt* oldNode, NonLeafNodeInt* newNode, NonLeafNodeI
 
 }
 
-void insertIntoNonLeaf(NonLeafNodeInt* tempNode, NonLeafNodeInt* cur) {
+void BTreeIndex::insertIntoNonLeaf(NonLeafNodeInt* tempNode, NonLeafNodeInt* cur) {
 	// extract middle key and pageNos from tempNode
 	int middleKey = tempNode->keyArray[0];
 	PageId page1 = tempNode->pageNoArray[0];
@@ -201,23 +201,23 @@ void insertIntoNonLeaf(NonLeafNodeInt* tempNode, NonLeafNodeInt* cur) {
 	
 	// find pos first
 	int pos = -1;
-	for (int i = 0; i < INTARRAYLEAFNONSIZE; i++) {
-		if (cur->keyArray[i] > middlekey) {
+	for (int i = 0; i < INTARRAYNONLEAFSIZE; i++) {
+		if (cur->keyArray[i] > middleKey) {
 			pos = i;
-			break
+			break;
 		}
 	}
 
-	for (int i = 0; i < INTARRAYLEAFNONSIZE-1; i++) {
+	for (int i = 0; i < INTARRAYNONLEAFSIZE-1; i++) {
 		if ( i < pos) {
-			tempkey[i] = cur->keyArray[i];
+			tempKey[i] = cur->keyArray[i];
 		} else {
-			tempkey[i+1] = cur->keyArray[i];
+			tempKey[i+1] = cur->keyArray[i];
 		}
 	}
 
 	// set middlekey
-	tempkey[pos] = middleKey;
+	tempKey[pos] = middleKey;
 
 	// loop for pageNoArray
 	for (int i = 0; INTARRAYLEAFSIZE; i++) {
@@ -250,9 +250,10 @@ void insertIntoNonLeaf(NonLeafNodeInt* tempNode, NonLeafNodeInt* cur) {
 /*
 	temp node pointer is the output
 */
-void BTreeIndex::splitLeafNode(LeafNodeInt* cur, NonLeafNodeInt* tempNode){
+void BTreeIndex::splitLeafNode(LeafNodeInt* cur, NonLeafNodeInt* tempNode, int target, RecordId id){
 	// create new node and page
 	Page* newPage = nullptr;
+	PageId nextPageId = nextPageID;
 	bufMgr->allocPage(file, nextPageId, newPage);
 	bufMgr->unPinPage(file, nextPageId, true); // unpinpage
 	LeafNodeInt* newNode = reinterpret_cast<LeafNodeInt*>(&newPage);
@@ -470,7 +471,7 @@ NonLeafNodeInt* BTreeIndex::treeInsertNode(Page current, int target, int level, 
 		// if there is space
 		if (space) {
 			// insert key and rid into leafNode
-			insertIntoLeaf(cur);
+			insertIntoLeaf(cur, target, id);
 
 			// return null if no propogation or splitting is needed
 			return NULL;
@@ -486,7 +487,7 @@ NonLeafNodeInt* BTreeIndex::treeInsertNode(Page current, int target, int level, 
 			// dont increment nextPageID because this node/page is only temporary
 			NonLeafNodeInt* tempNode = reinterpret_cast<NonLeafNodeInt*>(&tempPage);
 
-			splitLeafNode(cur, tempNode);
+			splitLeafNode(cur, tempNode, target, id);
 
 			return tempNode;
 		}
