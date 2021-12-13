@@ -167,31 +167,160 @@ LeafNodeInt BTreeIndex::traverseTree (Page current, int target, int level) {
 }
 
 void splitNonLeaf(NonLeafNodeInt* oldNode, NonLeafNodeInt* newNode, NonLeafNodeInt* tempNode) {
+	// extract info from tempNode
+	int newKey = tempNode->keyArray[0];
+	PageId page1 = tempNode->pageNoArray[0];
+	PageId page2 = tempNode->pageNoArray[1];
+
 	// create new page
+	Page* newPage = nullptr;
+	bufMgr->allocPage(file, nextPageID, newPage);
 	// unpin page and increment nextPageID
+	bufMgr->unPinPage(file, nextPageID, true);
+	nextPageID+=1;
 
 	// cast page to node
+	NonLeafNodeInt* newNode = reinterpret_cast<NonLeafNodeInt*>(&newPage);
 
 	// set all values in arrays of newNode to null
+	for (int i = 0; i < INTARRAYLEAFNONSIZE; i++) {
+		newNode->keyArray[i] = NULL;
+	}
 
 	//calc halfindex
+	int halfindex = INTARRAYLEAFNONSIZE/2;
 	//get middlekey
-	// get middlekeys pageNos
+	int middlekey = oldNode->keyArray[halfindex];
+	// get page nos
+	PageID nextPage1 = oldNode->pageNoArray[halfindex];
+	PageID nextPage2 = oldNode->pageNoArray[halfindex+1];
 
-	//populate new nodes arrays with the old stuff except for the middle key and its pageNos
-	// challenge here is fitting new stuff in and not having a duplicate pointer
+	// remove middlekey and pageNos
+	for (int i = 0; i < INTARRAYNONLEAFSIZE; i++) {
+		if (oldNode->keyArray[i] > middleKey) {
+			oldNode->keyArray[i-1] = oldNode->keyArray[i];
+		}
+	}
+	oldNofe->keyArray[INTARRAYNONLEAFSIZE-1] = NULL;
 
-	// insert extracted target key and pagenos into correct node
-	// if statement for old node
-	// if statement for new node
+	//redistribute array values to each node
+	for (int i = halfindex; i < INTARRAYNONLEAFSIZE; i++) {
+		newNode->keyArray[i-halfindex] = oldNode->keyArray[i];
 
-	// create tempnode to pass up and give it the middlekey and pagenos
+		// remove old values
+		oldNode->keyArray[i] = NULL;
+	}
+	for (int i = halfindex; i < INTARRAYNONLEAFSIZE+1; i++) {
+		newNode->pageNoArray[i-halfindex] = oldNode->pageNoArray[i];
+	}
+
+	// insert newKey and pages
+	int tempKey[INTARRAYLEAFSIZE];
+	PageId temppid[INTARRAYLEAFSIZE+1];
+
+	// if newKey will go into oldNode
+	if (newKey < middleKey) {
+
+		// find pos first
+		int pos = -1;
+		for (int i = 0; i < INTARRAYNONLEAFSIZE; i++) {
+			if (oldNode->keyArray[i] > newKey || oldNode->keyArray[i] == NULL) {
+				pos = i;
+				break
+			}
+			
+
+		for (int i = 0; i < INTARRAYNONLEAFSIZE-1; i++) {
+			if ( i < pos) {
+				tempkey[i] = oldNode->keyArray[i];
+			} else {
+				tempkey[i+1] = oldNode->keyArray[i];
+			}
+		}
+
+		// set middlekey
+		tempkey[pos] = newKey;
+
+		// loop for pageNoArray
+		for (int i = 0; INTARRAYNONLEAFSIZE; i++) {
+			if ( i < pos) {
+				temppid[i] = oldNode->pageNoArray[i];
+			} else if (i > pos) {
+				temppid[i+1] = oldNode->pageNoArray[i];
+			}
+		}
+
+		// set pageIds
+		temppid[pos] = page1;
+		temppid[pos+1] = page2;
+
+		// set temp arrays to oldNode
+		for (int i = 0; i < INTARRAYNONLEAFSIZE; i++) {
+			oldNode->keyArray[i] = tempKey[i];
+		}
+		for (int i = 0; i < INTARRAYNONLEAFSIZE+1; i++) {
+			oldNode->pageNoArray[i] = temppid[i];
+		}
+
+	// if newKey will go into newNode
+	} else {
+
+		// find pos first
+		int pos = -1;
+		for (int i = 0; i < INTARRAYNONLEAFSIZE; i++) {
+			if (newNode->keyArray[i] > newKey || newNode->keyArray[i] == NULL) {
+				pos = i;
+				break
+			}
+			
+
+		for (int i = 0; i < INTARRAYNONLEAFSIZE-1; i++) {
+			if ( i < pos) {
+				tempkey[i] = newNode->keyArray[i];
+			} else {
+				tempkey[i+1] = newNode->keyArray[i];
+			}
+		}
+
+		// set middlekey
+		tempkey[pos] = newKey;
+
+		// loop for pageNoArray
+		for (int i = 0; INTARRAYNONLEAFSIZE; i++) {
+			if ( i < pos) {
+				temppid[i] = newNode->pageNoArray[i];
+			} else if (i > pos) {
+				temppid[i+1] = newNode->pageNoArray[i];
+			}
+		}
+
+		// set pageIds
+		temppid[pos] = page1;
+		temppid[pos+1] = page2;
+
+		// set temp arrays to newNode
+		// set temp arrays to oldNode
+		for (int i = 0; i < INTARRAYNONLEAFSIZE; i++) {
+			newNode->keyArray[i] = tempKey[i];
+		}
+		for (int i = 0; i < INTARRAYNONLEAFSIZE+1; i++) {
+			newNode->pageNoArray[i] = temppid[i];
+		}
+
+	}
+
+
+	//give tempnode middlekey and pages too pass up
+	tempNode->level = oldNode->level+1; // this doesnt actually matter for this node
+	tempNode->keyArray[0] = middleKey;
+	tempNode->pageNoArray[0] = nextPage1;
+	tempNode->pageNoArray[1] = nextPage2;
 
 }
 
 void BTreeIndex::insertIntoNonLeaf(NonLeafNodeInt* tempNode, NonLeafNodeInt* cur) {
 	// extract middle key and pageNos from tempNode
-	int middleKey = tempNode->keyArray[0];
+	int newKey = tempNode->keyArray[0];
 	PageId page1 = tempNode->pageNoArray[0];
 	PageId page2 = tempNode->pageNoArray[1];
 
@@ -202,7 +331,7 @@ void BTreeIndex::insertIntoNonLeaf(NonLeafNodeInt* tempNode, NonLeafNodeInt* cur
 	// find pos first
 	int pos = -1;
 	for (int i = 0; i < INTARRAYNONLEAFSIZE; i++) {
-		if (cur->keyArray[i] > middleKey) {
+		if (cur->keyArray[i] > newKey) {
 			pos = i;
 			break;
 		}
@@ -217,7 +346,7 @@ void BTreeIndex::insertIntoNonLeaf(NonLeafNodeInt* tempNode, NonLeafNodeInt* cur
 	}
 
 	// set middlekey
-	tempKey[pos] = middleKey;
+	tempKey[pos] = newKey;
 
 	// loop for pageNoArray
 	for (int i = 0; INTARRAYLEAFSIZE; i++) {
@@ -233,7 +362,7 @@ void BTreeIndex::insertIntoNonLeaf(NonLeafNodeInt* tempNode, NonLeafNodeInt* cur
 	temppid[pos+1] = page2;
 
 	// add new key and pages
-	tempKey[pos] = middleKey;
+	tempKey[pos] = newKey;
 	temppid[pos] = page1;
 	// potential place of failure
 	temppid[pos+1] = page2;
