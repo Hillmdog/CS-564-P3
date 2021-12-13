@@ -193,8 +193,9 @@ void BTreeIndex::splitNonLeaf(NonLeafNodeInt* oldNode, NonLeafNodeInt* tempNode,
 	//get middlekey
 	int middleKey = oldNode->keyArray[halfindex];
 	// get page nos
-	PageId nextPage1 = oldNode->pageNoArray[halfindex];
-	PageId nextPage2 = oldNode->pageNoArray[halfindex+1];
+	Page* oldPage = reinterpret_cast<Page*>(&oldNode);
+	PageId nextPage1 = oldPage->page_number();
+	PageId nextPage2 = newPage->page_number();
 
 	// remove middlekey and pageNos
 	for (int i = 0; i < INTARRAYNONLEAFSIZE; i++) {
