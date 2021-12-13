@@ -166,7 +166,7 @@ LeafNodeInt BTreeIndex::traverseTree (Page current, int target, int level) {
 
 }
 
-void splitNonLeaf(NonLeafNodeInt* oldNode, NonLeafNodeInt* tempNode, NonLeafNodeInt* returnedNode) {
+void BTreeIndex::splitNonLeaf(NonLeafNodeInt* oldNode, NonLeafNodeInt* tempNode, NonLeafNodeInt* returnedNode) {
 	// extract info from tempNode
 	int newKey = tempNode->keyArray[0];
 	PageId page1 = tempNode->pageNoArray[0];
@@ -174,7 +174,8 @@ void splitNonLeaf(NonLeafNodeInt* oldNode, NonLeafNodeInt* tempNode, NonLeafNode
 
 	// create new page
 	Page* newPage = nullptr;
-	bufMgr->allocPage(file, nextPageID, newPage);
+	PageId nextPageId = nextPageID;
+	bufMgr->allocPage(file, nextPageId, newPage);
 	// unpin page and increment nextPageID
 	bufMgr->unPinPage(file, nextPageID, true);
 	nextPageID+=1;
@@ -183,17 +184,17 @@ void splitNonLeaf(NonLeafNodeInt* oldNode, NonLeafNodeInt* tempNode, NonLeafNode
 	NonLeafNodeInt* newNode = reinterpret_cast<NonLeafNodeInt*>(&newPage);
 
 	// set all values in arrays of newNode to null
-	for (int i = 0; i < INTARRAYLEAFNONSIZE; i++) {
+	for (int i = 0; i < INTARRAYNONLEAFSIZE; i++) {
 		newNode->keyArray[i] = NULL;
 	}
 
 	//calc halfindex
-	int halfindex = INTARRAYLEAFNONSIZE/2;
+	int halfindex = INTARRAYNONLEAFSIZE/2;
 	//get middlekey
-	int middlekey = oldNode->keyArray[halfindex];
+	int middleKey = oldNode->keyArray[halfindex];
 	// get page nos
-	PageID nextPage1 = oldNode->pageNoArray[halfindex];
-	PageID nextPage2 = oldNode->pageNoArray[halfindex+1];
+	PageId nextPage1 = oldNode->pageNoArray[halfindex];
+	PageId nextPage2 = oldNode->pageNoArray[halfindex+1];
 
 	// remove middlekey and pageNos
 	for (int i = 0; i < INTARRAYNONLEAFSIZE; i++) {
@@ -201,7 +202,7 @@ void splitNonLeaf(NonLeafNodeInt* oldNode, NonLeafNodeInt* tempNode, NonLeafNode
 			oldNode->keyArray[i-1] = oldNode->keyArray[i];
 		}
 	}
-	oldNofe->keyArray[INTARRAYNONLEAFSIZE-1] = NULL;
+	oldNode->keyArray[INTARRAYNONLEAFSIZE-1] = NULL;
 
 	//redistribute array values to each node
 	for (int i = halfindex; i < INTARRAYNONLEAFSIZE; i++) {
@@ -226,23 +227,23 @@ void splitNonLeaf(NonLeafNodeInt* oldNode, NonLeafNodeInt* tempNode, NonLeafNode
 		for (int i = 0; i < INTARRAYNONLEAFSIZE; i++) {
 			if (oldNode->keyArray[i] > newKey || oldNode->keyArray[i] == NULL) {
 				pos = i;
-				break
+				break;
 			}
-			
+		}	
 
 		for (int i = 0; i < INTARRAYNONLEAFSIZE-1; i++) {
 			if ( i < pos) {
-				tempkey[i] = oldNode->keyArray[i];
+				tempKey[i] = oldNode->keyArray[i];
 			} else {
-				tempkey[i+1] = oldNode->keyArray[i];
+				tempKey[i+1] = oldNode->keyArray[i];
 			}
 		}
 
 		// set middlekey
-		tempkey[pos] = newKey;
+		tempKey[pos] = newKey;
 
 		// loop for pageNoArray
-		for (int i = 0; INTARRAYNONLEAFSIZE; i++) {
+		for (int i = 0; i < INTARRAYNONLEAFSIZE; i++) {
 			if ( i < pos) {
 				temppid[i] = oldNode->pageNoArray[i];
 			} else if (i > pos) {
@@ -270,20 +271,20 @@ void splitNonLeaf(NonLeafNodeInt* oldNode, NonLeafNodeInt* tempNode, NonLeafNode
 		for (int i = 0; i < INTARRAYNONLEAFSIZE; i++) {
 			if (newNode->keyArray[i] > newKey || newNode->keyArray[i] == NULL) {
 				pos = i;
-				break
+				break;
 			}
-			
+		}	
 
 		for (int i = 0; i < INTARRAYNONLEAFSIZE-1; i++) {
 			if ( i < pos) {
-				tempkey[i] = newNode->keyArray[i];
+				tempKey[i] = newNode->keyArray[i];
 			} else {
-				tempkey[i+1] = newNode->keyArray[i];
+				tempKey[i+1] = newNode->keyArray[i];
 			}
 		}
 
 		// set middlekey
-		tempkey[pos] = newKey;
+		tempKey[pos] = newKey;
 
 		// loop for pageNoArray
 		for (int i = 0; INTARRAYNONLEAFSIZE; i++) {
