@@ -166,7 +166,7 @@ LeafNodeInt BTreeIndex::traverseTree (Page current, int target, int level) {
 
 }
 
-void splitNonLeaf(NonLeafNodeInt* oldNode, NonLeafNodeInt* newNode, NonLeafNodeInt* tempNode) {
+void splitNonLeaf(NonLeafNodeInt* oldNode, NonLeafNodeInt* tempNode, NonLeafNodeInt* returnedNode) {
 	// extract info from tempNode
 	int newKey = tempNode->keyArray[0];
 	PageId page1 = tempNode->pageNoArray[0];
@@ -311,10 +311,10 @@ void splitNonLeaf(NonLeafNodeInt* oldNode, NonLeafNodeInt* newNode, NonLeafNodeI
 
 
 	//give tempnode middlekey and pages too pass up
-	tempNode->level = oldNode->level+1; // this doesnt actually matter for this node
-	tempNode->keyArray[0] = middleKey;
-	tempNode->pageNoArray[0] = nextPage1;
-	tempNode->pageNoArray[1] = nextPage2;
+	returnedNode->level = oldNode->level+1; // this doesnt actually matter for this node
+	returnedNode->keyArray[0] = middleKey;
+	returnedNode->pageNoArray[0] = nextPage1;
+	returnedNode->pageNoArray[1] = nextPage2;
 
 }
 
