@@ -798,7 +798,7 @@ void BTreeIndex::scanNext(RecordId& outRid){
 // -----------------------------------------------------------------------------
 //
 void BTreeIndex::endScan(){
-	//stops the current scan and  throws a ScanNotInitializedException if triggered before a succesful startScan call
+	//stops scan and  throws error if startScan has not been called
 	if(!scanExecuting){
 		throw ScanNotInitializedException();
 	}
