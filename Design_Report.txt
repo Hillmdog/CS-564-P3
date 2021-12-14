@@ -7,15 +7,16 @@ coresposning record id pairs. This allows us to effiecently travers the database
 
 Traversing the B+ tree:
 
--
+- 
 
 Design Choices:
 
--
+- We implemented the B+ tree by consitently calling InserEntry method. From this point we determine where the entry should go based on the depth of the tree and the balance.
 
 Unpin Page:
 
-- We decided to unpin the pages as soon as possible. This allows us to keep the buffer pool from filling up. 
+- We decided to unpin the pages as soon as possible. This allows us to keep the buffer pool from filling up. This allows us to speed up the program since the I/O would be 
+a bottle neck, and we are now replacing that with CPU cycles, which are must faster. 
 
 Efficiency:
 
