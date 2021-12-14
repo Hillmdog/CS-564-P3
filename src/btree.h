@@ -337,7 +337,7 @@ class BTreeIndex {
 	*@param level		previous depth in the tree
 	*@param id		rid to be inserted into tree
 **/
-	NonLeafNodeInt* treeInsertNode(Page current, int target, int level, RecordId& id);
+	NonLeafNodeInt* treeInsertNode(Page current, int target, int level, RecordId id);
 
    void insertIntoNonLeaf(NonLeafNodeInt* tempNode, NonLeafNodeInt* cur);
 

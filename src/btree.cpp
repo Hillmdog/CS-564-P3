@@ -519,7 +519,7 @@ void insertIntoLeaf(LeafNodeInt* cur, int target, RecordId id) {
 // -----------------------------------------------------------------------------
 // BTreeIndex::treeInsertNode
 //------------------------------------------------------------------------------
-NonLeafNodeInt* BTreeIndex::treeInsertNode(Page current, int target, int level, RecordId& id) {
+NonLeafNodeInt* BTreeIndex::treeInsertNode(Page current, int target, int level, RecordId id) {
 	// if its a non leaf node
 	if (level != 1) {
 		// cast to non leaf node
@@ -632,13 +632,13 @@ NonLeafNodeInt* BTreeIndex::treeInsertNode(Page current, int target, int level, 
 
 void BTreeIndex::insertEntry(const void *key, const RecordId rid) 
 {
-	// cast ket to an int	
-	int keyInt = *(reinterpret_cast<int*>(&lowValParm));
+	// cast key to an int	
+	int keyInt = *(reinterpret_cast<int*>(&key));
 
 	// get root
 	Page* rootPage = nullptr;
 	bufMgr->readPage(file, rootPageNum, rootPage);
-	bufMgr->unpinPage(file, rootPageNum, true);
+	bufMgr->unPinPage(file, rootPageNum, true);
 
 	NonLeafNodeInt* root = reinterpret_cast<NonLeafNodeInt*>(&rootPage);
 
@@ -656,8 +656,9 @@ void BTreeIndex::insertEntry(const void *key, const RecordId rid)
 		
 		// create a leafnode
 		Page* leafPage = nullptr;
-		bufMgr->allocPage(file, nextPageID, leafPage);
-		bufMgr->unpinPage(file, nextPageID, true);
+		PageId nextPageId = nextPageID;
+		bufMgr->allocPage(file, nextPageId, leafPage);
+		bufMgr->unPinPage(file, nextPageId, true);
 		nextPageID+=1;
 
 		LeafNodeInt* leaf = reinterpret_cast<LeafNodeInt*>(&leafPage);
@@ -667,7 +668,7 @@ void BTreeIndex::insertEntry(const void *key, const RecordId rid)
 		leaf->ridArray[0] = rid;
 
 		// in root node, set pageNoArray at [1] to the leafNode
-		root->pageNoArray[1] = rid;
+		root->pageNoArray[1] = leafPage->page_number();
 		// set keyArray at [0] to key
 		root->keyArray[0] = keyInt;
 	}
@@ -676,7 +677,7 @@ void BTreeIndex::insertEntry(const void *key, const RecordId rid)
 	/*	Noraml case	*/
 	else {
 		// insert element in tree with recursion!
-		NonLeafNodeInt* node = treeInsertNode(root, keyInt, 0, rid);
+		NonLeafNodeInt* node = treeInsertNode(*rootPage, keyInt, 0, rid);
 
 		// check if the returned node is = to nullptr
 		if (node != nullptr) {
@@ -684,7 +685,7 @@ void BTreeIndex::insertEntry(const void *key, const RecordId rid)
 			Page* newRoot = reinterpret_cast<Page*>(&node);
 
 			// someone should double check this
-			rootPageNum = newRoot.page_number();
+			rootPageNum = newRoot->page_number();
 
 		}
 		
