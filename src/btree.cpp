@@ -15,6 +15,7 @@
 #include "exceptions/index_scan_completed_exception.h"
 #include "exceptions/file_not_found_exception.h"
 #include "exceptions/end_of_file_exception.h"
+#include "exceptions/file_exists_exception.h"
 
 
 //#define DEBUG
@@ -36,7 +37,9 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 	// check if the index file exists
 	if (!File::exists(outIndexName)) {
 		// create the index file if not already exists
-		BTreeIndex::file = &BlobFile::create(outIndexName);
+		std::shared_ptr<BlobFile> blobFile; // initialized to nullptr
+		blobFile = std::make_shared<BlobFile>(BlobFile::create(outIndexName));
+		BTreeIndex::file = blobFile.get();
 		// initialize metadata
 		BTreeIndex::bufMgr = bufMgrIn;
 		BTreeIndex::headerPageNum = 1;
@@ -68,7 +71,9 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 		fileScanner.~FileScan();
 	} else {
 		// if exists, open the index file
-		BTreeIndex::file = &BlobFile::open(outIndexName);
+		std::shared_ptr<BlobFile> blobFile;
+		blobFile = std::make_shared<BlobFile>(BlobFile::open(outIndexName));
+		BTreeIndex::file = blobFile.get();
 		// check if the metadata in header matches with the given values
 		BTreeIndex::bufMgr = bufMgrIn;
 		BTreeIndex::headerPageNum = file->getFirstPageNo(); // or 1
@@ -139,7 +144,8 @@ LeafNodeInt BTreeIndex::traverseTree (Page current, int target, int level) {
 
 		}
 		if (flag == 0) {
-			Page* nextPage = nullptr; 
+			// std::shared_ptr<Page> nextPage;
+			Page* nextPage;
 			bufMgr->readPage(file, cur->pageNoArray[INTARRAYNONLEAFSIZE-1], nextPage);
 			next = traverseTree(*nextPage, target, cur->level);
 		}
