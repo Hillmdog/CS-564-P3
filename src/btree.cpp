@@ -768,18 +768,23 @@ void BTreeIndex::startScan(const void* lowValParm,
 // -----------------------------------------------------------------------------
 
 void BTreeIndex::scanNext(RecordId& outRid){
+	//check if scan is in proccess
 	if(scanExecuting == false){
 		throw ScanNotInitializedException();
 	}
+	//look at current page
 	LeafNodeInt *node = (LeafNodeInt *) currentPageData;
 	outRid = node->ridArray[nextEntry];
+	// if rid is a valid key
 	if (nextEntry == INTARRAYLEAFSIZE || outRid.page_number == 0) {
+		//read page and unpin
 		nextEntry = 0;
 		bufMgr->unPinPage(file, currentPageNum, false);
 		currentPageNum = node->rightSibPageNo;
   		bufMgr->readPage(file, currentPageNum, currentPageData);
  		node = (LeafNodeInt *) currentPageData;
-	}	
+	}
+	//if the scan is complete
 	if(nextEntry == -1) {
 		throw IndexScanCompletedException();
 	}
