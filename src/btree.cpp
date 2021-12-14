@@ -632,7 +632,64 @@ NonLeafNodeInt* BTreeIndex::treeInsertNode(Page current, int target, int level, 
 
 void BTreeIndex::insertEntry(const void *key, const RecordId rid) 
 {
+	// cast ket to an int	
+	int keyInt = *(reinterpret_cast<int*>(&lowValParm));
 
+	// get root
+	Page* rootPage = nullptr;
+	bufMgr->readPage(file, rootPageNum, rootPage);
+	bufMgr->unpinPage(file, rootPageNum, true);
+
+	NonLeafNodeInt* root = reinterpret_cast<NonLeafNodeInt*>(&rootPage);
+
+	// check if roots keyArray is empty
+	int isEmpty = 1;
+	for (int i = 0; i < INTARRAYNONLEAFSIZE; i++) {
+		if (root->keyArray[i] != NULL) {
+			isEmpty = 0; // root is not empty
+			break;
+		}
+	}
+
+	/*	Root Case	*/
+	if (isEmpty) {
+		
+		// create a leafnode
+		Page* leafPage = nullptr;
+		bufMgr->allocPage(file, nextPageID, leafPage);
+		bufMgr->unpinPage(file, nextPageID, true);
+		nextPageID+=1;
+
+		LeafNodeInt* leaf = reinterpret_cast<LeafNodeInt*>(&leafPage);
+
+		//insert key and rid into leaf node
+		leaf->keyArray[0] = keyInt;
+		leaf->ridArray[0] = rid;
+
+		// in root node, set pageNoArray at [1] to the leafNode
+		root->pageNoArray[1] = rid;
+		// set keyArray at [0] to key
+		root->keyArray[0] = keyInt;
+	}
+
+
+	/*	Noraml case	*/
+	else {
+		// insert element in tree with recursion!
+		NonLeafNodeInt* node = treeInsertNode(root, keyInt, 0, rid);
+
+		// check if the returned node is = to nullptr
+		if (node != nullptr) {
+			// set root node to returned node
+			Page* newRoot = reinterpret_cast<Page*>(&node);
+
+			// someone should double check this
+			rootPageNum = newRoot.page_number();
+
+		}
+		
+		
+	}
 }
 
 // -----------------------------------------------------------------------------
