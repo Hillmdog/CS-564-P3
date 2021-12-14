@@ -54,7 +54,7 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 		headerPage_ptr = &headerPage;
 		bufMgr->unPinPage(file, headerPageNum, true);
 		// insert entries for every tuple in the base relation using FileScan class
-		FileScan fileScanner = FileScan(outIndexName, bufMgrIn);
+		FileScan fileScanner = FileScan(relationName, bufMgrIn);
 		try {
 			RecordId rid;
 			while (true) {

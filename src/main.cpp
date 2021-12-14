@@ -179,16 +179,17 @@ void test3()
 	indexTests();
 	deleteRelation();
 }
-void test4() {
-	  // Testing Negative values
-	  std::cout << "--------------------" << std::endl;
-	  std::cout << "Testing Negative Values" << std::endl;
-	  //Testing -5000,5000
-	  createRelationForwardWithRange();
-	  testNegativeVal();
-	  File::remove(intIndexName);
-	  deleteRelation();
-}
+
+// void test4() {
+// 	  // Testing Negative values
+// 	  std::cout << "--------------------" << std::endl;
+// 	  std::cout << "Testing Negative Values" << std::endl;
+// 	  //Testing -5000,5000
+// 	  createRelationForwardWithRange();
+// 	  testNegativeVal();
+// 	  File::remove(intIndexName);
+// 	  deleteRelation();
+// }
 
 // -----------------------------------------------------------------------------
 // createRelationForward
