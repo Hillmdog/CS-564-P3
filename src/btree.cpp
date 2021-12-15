@@ -827,9 +827,9 @@ void BTreeIndex::startScan(const void* lowValParm,
 	bufMgr->unPinPage(file, rootPageNum, root);
 
 	// can we assume low and highValParm will always point to ints?
-	int localLow = *(reinterpret_cast<int*>(&lowValParm));
+	int localLow = *((int*)(lowValParm));
 	// int localLow = *((int *)(lowValParm));
-	int localHigh = *(reinterpret_cast<int*>(&highValParm));
+	int localHigh = *((int*)(highValParm));
 
     // if low param is greater than high param throw error
     if (localHigh > localLow) {
@@ -837,11 +837,11 @@ void BTreeIndex::startScan(const void* lowValParm,
     }
 
 	// change what the values will be based on their operators
-	if (lowOpParm == 0) {
-		localLow += 1;
+	if (highOpParm == 1) {
+		localHigh += 1;
 	}
-	if (highOpParm == 3) {
-		localHigh -= 1;
+	if (lowOpParm == 2) {
+		localLow -= 1;
 	}
 
 	// set scan variables
