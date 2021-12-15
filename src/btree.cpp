@@ -87,6 +87,9 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 				const char *record_ptr = record.c_str();
 				const void *key = (int *)(record_ptr + attrByteOffset);
 				std::cout << *((int*)key) << std::endl;
+				if (*((int*)key) == -320) {
+					std::cout << "STOP" << std::endl;
+				}
 				insertEntry(key, rid);
 			}
 		} catch(EndOfFileException e) {
@@ -516,7 +519,7 @@ void insertIntoLeaf(LeafNodeInt* cur, int target, RecordId rid) {
 
 	// find pos for target key and rid to fit into
 	// This needs fixing i think
-	int pos = -1;
+	int pos = INTARRAYLEAFSIZE-1;
 	int flag = -1;
 	for (int i  = 0; i < INTARRAYLEAFSIZE-1; i ++) {
 		if (cur->keyArray[i] != MYNULL && cur->keyArray[i] < target) {
