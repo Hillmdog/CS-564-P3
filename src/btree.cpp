@@ -95,7 +95,7 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 		} catch(EndOfFileException e) {
 			// end of file scan
 		}
-		fileScanner.~FileScan();
+		// fileScanner.~FileScan();
 	} else {
 		// if exists, open the index file
 		std::shared_ptr<BlobFile> blobFile;
@@ -352,19 +352,22 @@ void BTreeIndex::splitNonLeaf(NonLeafNodeInt* oldNode, NonLeafNodeInt* tempNode,
 }
 
 void BTreeIndex::insertIntoNonLeaf(NonLeafNodeInt* tempNode, NonLeafNodeInt* cur) {
-	// extract middle key and pageNos from tempNode
+	// extract middle key(target) and pageNos from tempNode
 	int newKey = tempNode->keyArray[0];
 	PageId page1 = tempNode->pageNoArray[0];
 	PageId page2 = tempNode->pageNoArray[1];
 
-	int tempKey[INTARRAYLEAFSIZE];
-	PageId temppid[INTARRAYLEAFSIZE+1];
+	int tempKey[INTARRAYNONLEAFSIZE];
+	PageId temppid[INTARRAYNONLEAFSIZE+1];
 	// add them into the current node
 	
 	// find pos first
-	int pos = -1;
-	for (int i = 0; i < INTARRAYNONLEAFSIZE; i++) {
-		if (cur->keyArray[i] > newKey) {
+	int pos = INTARRAYNONLEAFSIZE-1;
+	// if target < all keys
+	// TODO insert to the left end
+
+	for (int i = 0; i < INTARRAYNONLEAFSIZE-1; i++) {
+		if (cur->keyArray[i] == MYNULL || cur->keyArray[i] > newKey) {
 			pos = i;
 			break;
 		}
@@ -378,21 +381,14 @@ void BTreeIndex::insertIntoNonLeaf(NonLeafNodeInt* tempNode, NonLeafNodeInt* cur
 		}
 	}
 
-	// set middlekey
-	tempKey[pos] = newKey;
-
 	// loop for pageNoArray
-	for (int i = 0; INTARRAYLEAFSIZE; i++) {
+	for (int i = 0; i < INTARRAYNONLEAFSIZE; i++) {
 		if ( i < pos) {
 			temppid[i] = cur->pageNoArray[i];
 		} else if (i > pos) {
 			temppid[i+1] = cur->pageNoArray[i];
 		}
 	}
-
-	// set pageIds
-	temppid[pos] = page1;
-	temppid[pos+1] = page2;
 
 	// add new key and pages
 	tempKey[pos] = newKey;
@@ -412,11 +408,12 @@ void BTreeIndex::insertIntoNonLeaf(NonLeafNodeInt* tempNode, NonLeafNodeInt* cur
 /*
 	temp node pointer is the output
 */
-void BTreeIndex::splitLeafNode(LeafNodeInt* cur, NonLeafNodeInt* tempNode, int target, RecordId rid){
+void BTreeIndex::splitLeafNode(LeafNodeInt* cur, PageId curPid, NonLeafNodeInt*& tempNode, int target, RecordId rid){
 	// create new node and page
 	Page* newPage = nullptr;
-	bufMgr->allocPage(file, nextPageID, newPage);
-	bufMgr->unPinPage(file, nextPageID, true); // unpinpage
+	PageId newPid;
+	bufMgr->allocPage(file, newPid, newPage);
+	bufMgr->unPinPage(file, newPid, true); // unpinpage
 	LeafNodeInt* newNode = (LeafNodeInt*)(newPage);
 	// nextPageID += 1;
 
@@ -447,59 +444,63 @@ void BTreeIndex::splitLeafNode(LeafNodeInt* cur, NonLeafNodeInt* tempNode, int t
 
 	// if the target is going into the old node
 	if (target < middleKey) {
-		int pos = -1;
+		int pos = INTARRAYLEAFSIZE-1;
 		int flag = -1;
-		for (int i = 0; i < halfindex; i++) {
+		for (int i = 0; i < INTARRAYLEAFSIZE; i++) {
 			if (cur->keyArray[i] < target && cur->keyArray[i] != MYNULL) {
 				tempKey[i] = cur->keyArray[i];
 				temprid[i] = cur->ridArray[i];
 			} else if (flag == -1) {
 				pos = i;
 				flag = 0;
-			}
-			if (cur->keyArray[i] > target){
-				tempKey[i+1] = cur->keyArray[i];
-				temprid[i+1] = cur->ridArray[i];
+				break;
 			}
 		}
 
+		// add target key and rid and what's left in the origional keyarray and ridarray
 		tempKey[pos] = target;
 		temprid[pos] = rid;
-		for (int i = 0; i < INTARRAYLEAFSIZE; i++) {
+		for (int i = pos+1; i < INTARRAYLEAFSIZE; i++) {
+			tempKey[i] = cur->keyArray[i-1];
+			temprid[i] = cur->ridArray[i-1];
+		}
+		// set cur->arrays to temparrays
+		for (int i  = 0; i < INTARRAYLEAFSIZE; i ++) {
 			cur->keyArray[i] = tempKey[i];
 			cur->ridArray[i] = temprid[i];
 		}
 
 	// if target goes into new node							
 	} else {
-		int pos = -1;
+		int pos = INTARRAYLEAFSIZE-1;
 		int flag = -1;
-		for (int i = 0; i < halfindex; i++) {
+		for (int i = 0; i < INTARRAYLEAFSIZE; i++) {
 			if (newNode->keyArray[i] < target && newNode->keyArray[i] != MYNULL) {
 				tempKey[i] = newNode->keyArray[i];
 				temprid[i] = newNode->ridArray[i];
 			} else if (flag == -1) {
 				pos = i;
 				flag = 0;
-			}
-			if (newNode->keyArray[i] > target){
-				tempKey[i+1] = newNode->keyArray[i];
-				temprid[i+1] = newNode->ridArray[i];
+				break;
 			}
 		}
-
+		// add target key and rid and what's left in the origional keyarray and ridarray
 		tempKey[pos] = target;
 		temprid[pos] = rid;
-		for (int i = 0; i < INTARRAYLEAFSIZE; i++) {
-			cur->keyArray[i] = tempKey[i];
-			cur->ridArray[i] = temprid[i];
+		for (int i = pos+1; i < INTARRAYLEAFSIZE; i++) {
+			tempKey[i] = newNode->keyArray[i-1];
+			temprid[i] = newNode->ridArray[i-1];
 		}
+		// set cur->arrays to temparrays
+		for (int i  = 0; i < INTARRAYLEAFSIZE; i ++) {
+			newNode->keyArray[i] = tempKey[i];
+			newNode->ridArray[i] = temprid[i];
+		}		
 	}
 
 	// fix the linked list
-	// fix the linked list
 	newNode->rightSibPageNo = cur->rightSibPageNo;
-	cur->rightSibPageNo = nextPageID;
+	cur->rightSibPageNo = newPid;
 
 	// set tempNodes info
 	tempNode->level = 1;
@@ -508,8 +509,8 @@ void BTreeIndex::splitLeafNode(LeafNodeInt* cur, NonLeafNodeInt* tempNode, int t
 	// Page* oldPage = reinterpret_cast<Page*>(&cur);
 	Page* oldPage = (Page*)(cur);
 	// Page* newPage = reinterpret_cast<Page*>(newNode);
-	tempNode->pageNoArray[0] = oldPage->page_number();// old node
-	tempNode->pageNoArray[1] = newPage->page_number();// new node		
+	tempNode->pageNoArray[0] = curPid;// old node
+	tempNode->pageNoArray[1] = newPid;// new node		
 }
 
 void insertIntoLeaf(LeafNodeInt* cur, int target, RecordId rid) {
@@ -518,9 +519,11 @@ void insertIntoLeaf(LeafNodeInt* cur, int target, RecordId rid) {
 	RecordId temprid[INTARRAYLEAFSIZE];
 
 	// find pos for target key and rid to fit into
-	// This needs fixing i think
 	int pos = INTARRAYLEAFSIZE-1;
 	int flag = -1;
+	// if target < all keys
+	// TODO insert to the left end
+
 	for (int i  = 0; i < INTARRAYLEAFSIZE-1; i ++) {
 		if (cur->keyArray[i] != MYNULL && cur->keyArray[i] < target) {
 			tempKey[i] = cur->keyArray[i];
@@ -530,10 +533,6 @@ void insertIntoLeaf(LeafNodeInt* cur, int target, RecordId rid) {
 			flag = 0;
 			break;
 		}
-		// if (cur->keyArray[i] > target) {
-		// 	tempKey[i+1] = cur->keyArray[i];
-		// 	temprid[i+1] = cur->ridArray[i];
-		// }
 	}
 
 	// add target key and rid and what's left in the origional keyarray and ridarray
@@ -555,8 +554,8 @@ void insertIntoLeaf(LeafNodeInt* cur, int target, RecordId rid) {
 // -----------------------------------------------------------------------------
 // BTreeIndex::treeInsertNode
 //------------------------------------------------------------------------------
-NonLeafNodeInt* BTreeIndex::treeInsertNode(Page current, int target, int level, RecordId rid) {
-	// if its a non leaf node
+NonLeafNodeInt* BTreeIndex::treeInsertNode(Page current, PageId curPid, int target, int level, RecordId rid) {
+	// if its not parent of leaf node
 	if (level != 1) {
 		// cast to non leaf node
 		NonLeafNodeInt* cur = reinterpret_cast<NonLeafNodeInt*>(&current);
@@ -578,7 +577,7 @@ NonLeafNodeInt* BTreeIndex::treeInsertNode(Page current, int target, int level, 
 				flag = 1;
 				Page* nextPage = nullptr; 
 				bufMgr->readPage(file, cur->pageNoArray[i], nextPage);
-				tempNode = treeInsertNode(*nextPage, target, cur->level, rid);
+				tempNode = treeInsertNode(*nextPage, cur->pageNoArray[i], target, cur->level, rid);
 				break;
 			}
 		}
@@ -586,7 +585,7 @@ NonLeafNodeInt* BTreeIndex::treeInsertNode(Page current, int target, int level, 
 		if (flag == -1) {
 			Page* nextPage = nullptr; 
 			bufMgr->readPage(file, cur->pageNoArray[keymatched], nextPage);
-			tempNode = treeInsertNode(*nextPage, target, cur->level, rid);
+			tempNode = treeInsertNode(*nextPage, cur->pageNoArray[keymatched], target, cur->level, rid);
 		}
 		
 		// if nothing needs to be changed
@@ -630,6 +629,7 @@ NonLeafNodeInt* BTreeIndex::treeInsertNode(Page current, int target, int level, 
 	} else {
 		NonLeafNodeInt* cur = reinterpret_cast<NonLeafNodeInt*>(&current);
 		LeafNodeInt* leafNode;
+		PageId leafPid;
 
 		int flag = -1;
 		int keymatched;
@@ -648,6 +648,7 @@ NonLeafNodeInt* BTreeIndex::treeInsertNode(Page current, int target, int level, 
 				Page* nextPage = nullptr; 
 				bufMgr->readPage(file, cur->pageNoArray[i], nextPage);
 				leafNode = (LeafNodeInt*)nextPage;
+				leafPid = cur->pageNoArray[i];
 				break;
 			}
 		}
@@ -656,6 +657,7 @@ NonLeafNodeInt* BTreeIndex::treeInsertNode(Page current, int target, int level, 
 			Page* nextPage = nullptr; 
 			bufMgr->readPage(file, cur->pageNoArray[keymatched], nextPage);
 			leafNode = (LeafNodeInt*)nextPage;
+			leafPid = cur->pageNoArray[keymatched];
 		}
 
 		// check if there is space in arrays
@@ -685,8 +687,37 @@ NonLeafNodeInt* BTreeIndex::treeInsertNode(Page current, int target, int level, 
 			// dont increment nextPageID because this node/page is only temporary
 			NonLeafNodeInt* tempNode = (NonLeafNodeInt*)(tempPage);
 
-			splitLeafNode(leafNode, tempNode, target, rid);
+			splitLeafNode(leafNode, leafPid, tempNode, target, rid);
 
+			// if leafNode is directly under root, need to merge tempNode into cur root and return a new root
+			if (curPid == rootPageNum) {
+				int space_root = 0;
+				for (int i = 0; i < INTARRAYNONLEAFSIZE; i++) {
+					if (cur->keyArray[i] == MYNULL) {
+						space_root = 1;
+						break;
+					}
+				}
+
+				// if there is space
+				if (space_root) {
+					// insert the tempNode information into the current node
+					insertIntoNonLeaf(tempNode, cur);
+
+					return nullptr;
+				
+				} else {
+					Page* returnedPage = nullptr;
+					bufMgr->allocPage(file, nextPageID, returnedPage);
+					bufMgr->unPinPage(file, nextPageID, true);
+					// dont increment nextPageID because this node/page is only temporary
+					NonLeafNodeInt* returnedNode = (NonLeafNodeInt*)(returnedPage);
+					
+					splitNonLeaf(cur, tempNode, returnedNode);
+
+					return returnedNode;
+				}
+			}
 			return tempNode;
 		}
 	}
@@ -750,20 +781,18 @@ void BTreeIndex::insertEntry(const void *key, const RecordId rid)
 	/*	Noraml case	*/
 	else {
 		// insert element in tree with recursion!
-		NonLeafNodeInt* node = treeInsertNode(*rootPage, keyInt, root->level, rid);
+		NonLeafNodeInt* node = treeInsertNode(*rootPage, rootPageNum, keyInt, root->level, rid);
 
 		// check if the returned node is = to nullptr
 		if (node != nullptr) {
 			// set root node to returned node
-			// Page* newRoot = reinterpret_cast<Page*>(&node);
+
 			Page* newRoot = (Page*)(node);
 
 			// someone should double check this
 			rootPageNum = newRoot->page_number();
 
 		}
-		
-		
 	}
 }
 
@@ -777,10 +806,10 @@ void BTreeIndex::startScan(const void* lowValParm,
 				   const Operator highOpParm)  
 {
     	// check type ids
-    	if (lowOpParm != 0 && lowOpParm != 1) {
+    	if (lowOpParm != 2 && lowOpParm != 3) {
         	throw BadOpcodesException();
 	} 
-    	if (highOpParm != 3 && highOpParm != 4) {
+    	if (highOpParm != 0 && highOpParm != 1) {
        	 	throw BadOpcodesException();
     	}
 
