@@ -98,7 +98,7 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 		bufMgr->readPage(file, headerPageNum, headerPage); // Page headerPage = (*file).readPage(headerPageNum);
 		bufMgr->unPinPage(file, headerPageNum, false);
 		// convert char[](Page) to struct 
-		const IndexMetaInfo* headerInfo = reinterpret_cast<const IndexMetaInfo*>(&headerPage);
+		IndexMetaInfo* headerInfo = (IndexMetaInfo*)(headerPage);
 		// if not match, throw BadIndexInfoException
 		if (headerInfo->relationName != relationName || headerInfo->attrByteOffset != attrByteOffset 
 				|| headerInfo->attrType != attrType) {
@@ -202,7 +202,7 @@ void BTreeIndex::splitNonLeaf(NonLeafNodeInt* oldNode, NonLeafNodeInt* tempNode,
 	nextPageID+=1;
 
 	// cast page to node
-	NonLeafNodeInt* newNode = reinterpret_cast<NonLeafNodeInt*>(&newPage);
+	NonLeafNodeInt* newNode = (NonLeafNodeInt*)(newPage);
 
 	// set all values in arrays of newNode to null
 	for (int i = 0; i < INTARRAYNONLEAFSIZE; i++) {
@@ -214,7 +214,7 @@ void BTreeIndex::splitNonLeaf(NonLeafNodeInt* oldNode, NonLeafNodeInt* tempNode,
 	//get middlekey
 	int middleKey = oldNode->keyArray[halfindex];
 	// get page nos
-	Page* oldPage = reinterpret_cast<Page*>(&oldNode);
+	Page* oldPage = (Page*)(oldNode);
 	PageId nextPage1 = oldPage->page_number();
 	PageId nextPage2 = newPage->page_number();
 
@@ -408,7 +408,7 @@ void BTreeIndex::splitLeafNode(LeafNodeInt* cur, NonLeafNodeInt* tempNode, int t
 	PageId nextPageId = nextPageID;
 	bufMgr->allocPage(file, nextPageId, newPage);
 	bufMgr->unPinPage(file, nextPageId, true); // unpinpage
-	LeafNodeInt* newNode = reinterpret_cast<LeafNodeInt*>(&newPage);
+	LeafNodeInt* newNode = (LeafNodeInt*)(newPage);
 	nextPageID += 1;
 
 	// set all values of newNodes arrays to null
@@ -496,7 +496,8 @@ void BTreeIndex::splitLeafNode(LeafNodeInt* cur, NonLeafNodeInt* tempNode, int t
 	tempNode->level = 1;
 	// need help with this
 	tempNode->keyArray[0] = middleKey;
-	Page* oldPage = reinterpret_cast<Page*>(&cur);
+	// Page* oldPage = reinterpret_cast<Page*>(&cur);
+	Page* oldPage = (Page*)(cur);
 	// Page* newPage = reinterpret_cast<Page*>(newNode);
 	tempNode->pageNoArray[0] = oldPage->page_number();// old node
 	tempNode->pageNoArray[1] = newPage->page_number();// new node		
@@ -599,7 +600,8 @@ NonLeafNodeInt* BTreeIndex::treeInsertNode(Page current, int target, int level, 
 			bufMgr->allocPage(file, nextPageId, returnedPage);
 			bufMgr->unPinPage(file, nextPageId, true);
 			// dont increment nextPageID because this node/page is only temporary
-			NonLeafNodeInt* returnedNode = reinterpret_cast<NonLeafNodeInt*>(&returnedPage);
+			// NonLeafNodeInt* returnedNode = reinterpret_cast<NonLeafNodeInt*>(&returnedPage);
+			NonLeafNodeInt* returnedNode = (NonLeafNodeInt*)(returnedPage);
 			
 			splitNonLeaf(cur, tempNode, returnedNode);
 
@@ -637,7 +639,8 @@ NonLeafNodeInt* BTreeIndex::treeInsertNode(Page current, int target, int level, 
 			bufMgr->allocPage(file, nextPageId, tempPage);
 			bufMgr->unPinPage(file, nextPageId, true);
 			// dont increment nextPageID because this node/page is only temporary
-			NonLeafNodeInt* tempNode = reinterpret_cast<NonLeafNodeInt*>(&tempPage);
+			// NonLeafNodeInt* tempNode = reinterpret_cast<NonLeafNodeInt*>(&tempPage);
+			NonLeafNodeInt* tempNode = (NonLeafNodeInt*)(tempPage);
 
 			splitLeafNode(cur, tempNode, target, id);
 
@@ -662,7 +665,8 @@ void BTreeIndex::insertEntry(const void *key, const RecordId rid)
 	bufMgr->readPage(file, rootPageNum, rootPage);
 	bufMgr->unPinPage(file, rootPageNum, true);
 
-	NonLeafNodeInt* root = reinterpret_cast<NonLeafNodeInt*>(&rootPage);
+	// NonLeafNodeInt* root = reinterpret_cast<NonLeafNodeInt*>(&rootPage);
+	NonLeafNodeInt* root = (NonLeafNodeInt*)(rootPage);
 
 	// check if roots keyArray is empty
 	int isEmpty = 1;
@@ -683,7 +687,8 @@ void BTreeIndex::insertEntry(const void *key, const RecordId rid)
 		bufMgr->unPinPage(file, nextPageId, true);
 		nextPageID+=1;
 
-		LeafNodeInt* leaf = reinterpret_cast<LeafNodeInt*>(&leafPage);
+		// LeafNodeInt* leaf = reinterpret_cast<LeafNodeInt*>(&leafPage);
+		LeafNodeInt* leaf = (LeafNodeInt*)(leafPage);
 
 		//insert key and rid into leaf node
 		leaf->keyArray[0] = keyInt;
@@ -704,7 +709,8 @@ void BTreeIndex::insertEntry(const void *key, const RecordId rid)
 		// check if the returned node is = to nullptr
 		if (node != nullptr) {
 			// set root node to returned node
-			Page* newRoot = reinterpret_cast<Page*>(&node);
+			// Page* newRoot = reinterpret_cast<Page*>(&node);
+			Page* newRoot = (Page*)(node);
 
 			// someone should double check this
 			rootPageNum = newRoot->page_number();
