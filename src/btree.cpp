@@ -47,11 +47,16 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 		BTreeIndex::attributeType = attrType;
 		BTreeIndex::attrByteOffset = attrByteOffset;
 		// create header page
-		const IndexMetaInfo btreeHeader = {outIndexName[0], attrByteOffset, attrType, 2};
-		Page headerPage = *(reinterpret_cast<const Page*>(&btreeHeader));
-		Page* headerPage_ptr;
-		bufMgr->allocPage(file, headerPageNum, headerPage_ptr); // file->writePage(headerPageNum, headerPage);
-		headerPage_ptr = &headerPage;
+		Page* headerPage;
+		bufMgr->allocPage(file, headerPageNum, headerPage); // file->writePage(headerPageNum, headerPage);
+		IndexMetaInfo* headerInfo = (IndexMetaInfo *)headerPage;
+		strcpy(headerInfo->relationName, relationName.c_str());
+		headerInfo->attrByteOffset = attrByteOffset;
+		headerInfo->attrType = attrType;
+		headerInfo->rootPageNo = 2; 
+		// const IndexMetaInfo btreeHeader = {outIndexName[0], attrByteOffset, attrType, 2};
+		// Page headerPage = *(reinterpret_cast<const Page*>(&btreeHeader));
+
 		bufMgr->unPinPage(file, headerPageNum, true);
 		// insert entries for every tuple in the base relation using FileScan class
 		FileScan fileScanner = FileScan(relationName, bufMgrIn);
@@ -83,13 +88,13 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 		bufMgr->readPage(file, headerPageNum, headerPage); // Page headerPage = (*file).readPage(headerPageNum);
 		bufMgr->unPinPage(file, headerPageNum, false);
 		// convert char[](Page) to struct 
-		const IndexMetaInfo* btreeHeader = reinterpret_cast<const IndexMetaInfo*>(&headerPage);
+		const IndexMetaInfo* headerInfo = reinterpret_cast<const IndexMetaInfo*>(&headerPage);
 		// if not match, throw BadIndexInfoException
-		if (btreeHeader->relationName != relationName || btreeHeader->attrByteOffset != attrByteOffset 
-				|| btreeHeader->attrType != attrType) {
+		if (headerInfo->relationName != relationName || headerInfo->attrByteOffset != attrByteOffset 
+				|| headerInfo->attrType != attrType) {
 			throw new BadIndexInfoException(outIndexName);
 		}
-		BTreeIndex::rootPageNum = btreeHeader->rootPageNo;
+		BTreeIndex::rootPageNum = headerInfo->rootPageNo;
 	}
 	scanExecuting = false;
 	BTreeIndex::nextPageID = 3;
