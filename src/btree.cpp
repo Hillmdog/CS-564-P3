@@ -148,52 +148,83 @@ BTreeIndex::~BTreeIndex()
 // BTreeIndex::traverseTree
 //------------------------------------------------------------------------------
 
-LeafNodeInt BTreeIndex::traverseTree (Page current, int target, int level) {
+LeafNodeInt* BTreeIndex::traverseTree (Page current, int target, int level) {
     if (level != 1) {
 		// cast page to nonLeafNode
 		NonLeafNodeInt* cur = reinterpret_cast<NonLeafNodeInt*>(&current);
-		LeafNodeInt next;
+		LeafNodeInt* next;
 		int flag = 0;
+		int pos = INTARRAYNONLEAFSIZE-1;
 		// search for next node
-		for (int i = 0; i < INTARRAYNONLEAFSIZE; i++) {
+		for (int i = 0; i < INTARRAYNONLEAFSIZE-1; i++) {
 			int curkey = cur->keyArray[i];
-
 			// if the target is less than the current key
-			if (target < curkey) {
+			if (curkey == MYNULL || target < curkey) {
 				// recursive case #1
 				flag = 1;
-				Page* curPage = nullptr; 
-				bufMgr->readPage(file, cur->pageNoArray[i], curPage);
-				next = traverseTree(*curPage, target, cur->level);
+				pos = i;
+				Page* nextPage = nullptr; 
+				bufMgr->readPage(file, cur->pageNoArray[i], nextPage);
+				bufMgr->unPinPage(file, cur->pageNoArray[i], false);
+				next = traverseTree(*nextPage, target, cur->level);
 				break;
 			}
 
 		}
+		// enter the node at the right end
 		if (flag == 0) {
-			// std::shared_ptr<Page> nextPage;
 			Page* nextPage;
-			bufMgr->readPage(file, cur->pageNoArray[INTARRAYNONLEAFSIZE-1], nextPage);
+			bufMgr->readPage(file, cur->pageNoArray[pos], nextPage);
+			bufMgr->unPinPage(file, cur->pageNoArray[pos], false);
 			next = traverseTree(*nextPage, target, cur->level);
 		}
-
 		return next;
 
 	} else {
-		// leaf nodes!
+		// nonleaf nodes directly above leaf!
+		// cast page to nonLeafNode
+		NonLeafNodeInt* cur = reinterpret_cast<NonLeafNodeInt*>(&current);
+		LeafNodeInt* leaf;
+		PageId leafPid;
+		int flag = 0;
+		int pos = INTARRAYNONLEAFSIZE-1;
+		// search for next node
+		for (int i = 0; i < INTARRAYNONLEAFSIZE-1; i++) {
+			int curkey = cur->keyArray[i];
+			// if the target is less than the current key
+			if (curkey == MYNULL || target < curkey) {
+				// recursive case #1
+				flag = 1;
+				pos = i;
+				Page* leafPage = nullptr; 
+				bufMgr->readPage(file, cur->pageNoArray[i], leafPage);
+				bufMgr->unPinPage(file, cur->pageNoArray[i], false);
+				leaf = (LeafNodeInt*) leafPage;
+				leafPid = cur->pageNoArray[i];
+				break;
+			}
 
-		// cast to leafNode
-		LeafNodeInt* cur = reinterpret_cast<LeafNodeInt*>(&current);
+		}
+		// enter the node at the right end
+		if (flag == 0) {
+			Page* leafPage;
+			bufMgr->readPage(file, cur->pageNoArray[pos], leafPage);
+			bufMgr->unPinPage(file, cur->pageNoArray[pos], false);
+			leaf = (LeafNodeInt*) leafPage;
+			leafPid = cur->pageNoArray[pos];
+		}
 
 		// check if the target is in this node
 		for (int i = 0; i < INTARRAYLEAFSIZE; i ++) {
-			if (cur->keyArray[i] == target) {
-				return *cur;
+			if (leaf->keyArray[i] != MYNULL && leaf->keyArray[i] >= target) {
+				currentPageNum = leafPid;
+				return leaf;
 			}
 		}
-
 		// did not find the target
+		currentPageNum = Page::INVALID_NUMBER;
 		LeafNodeInt* none = nullptr;
-		return *none;
+		return none;
 	}
 
 }
@@ -825,6 +856,7 @@ void BTreeIndex::startScan(const void* lowValParm,
 	Page* root = nullptr;
 	bufMgr->readPage(file, rootPageNum, root);
 	bufMgr->unPinPage(file, rootPageNum, root);
+	NonLeafNodeInt* rootNode = (NonLeafNodeInt*)root;
 
 	// can we assume low and highValParm will always point to ints?
 	int localLow = *((int*)(lowValParm));
@@ -837,11 +869,12 @@ void BTreeIndex::startScan(const void* lowValParm,
     }
 
 	// change what the values will be based on their operators
-	if (highOpParm == 1) {
-		localHigh += 1;
+	// change < to <= and > to >=
+	if (highOpParm == 0) {
+		localHigh -= 1;
 	}
-	if (lowOpParm == 2) {
-		localLow -= 1;
+	if (lowOpParm == 3) {
+		localLow += 1;
 	}
 
 	// set scan variables
@@ -850,19 +883,26 @@ void BTreeIndex::startScan(const void* lowValParm,
 
 	// find the first leaf node
 	// not sure how to tell if root is a leaf or not
-	LeafNodeInt leaf;
-	try {
-		// if it is not the leaf
-		leaf = traverseTree(*root, lowValInt, 0);
-	} catch (BadgerDbException e) {
-		// if it is a leaf
-		leaf = traverseTree(*root, lowValInt, 1);
+	LeafNodeInt* leaf;
+	// try {
+	// 	// if it is not the leaf
+	// 	leaf = traverseTree(*root, lowValInt, rootNode->level);
+	// } catch (BadgerDbException e) {
+	// 	// if it is a leaf
+	// 	// leaf = traverseTree(*root, lowValInt, 1);
+	// }
+	leaf = traverseTree(*root, lowValInt, rootNode->level);
+	if (leaf == nullptr) {
+		currentPageData = nullptr;
+		return;
 	}
-	 Page* leafPage = reinterpret_cast<Page*>(&leaf);
-	 // pin the page? is there a better way?
-	 bufMgr->readPage(file, leafPage->page_number(), leafPage);
+	currentPageData = (Page*)(leaf);
+	// pin the page? is there a better way?
+	// Re: do it in scanNext()
+	//  bufMgr->readPage(file, leafPage->page_number(), leafPage);
 
-	 // is this all or should I also set next Entry
+	// is this all or should I also set next Entry
+	// Re: set it in scanNext()
 
 }	
 

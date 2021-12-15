@@ -293,6 +293,10 @@ class BTreeIndex {
    */
 	Operator	highOp;
 
+
+  /**
+   * placeholder for temporary pageId returned by bufmgr.allocPage/readPage
+   */
 	PageId nextPageID;
 	
 	
@@ -330,7 +334,7 @@ class BTreeIndex {
     * @param target         target value
 **/
    
-   LeafNodeInt traverseTree (Page current, int target, int level);
+   LeafNodeInt* traverseTree (Page current, int target, int level);
 /**
 	*Recursivly iterates down the tree to find the leaf node to insert target key and id into
 	*splits and propogates nodes back up tree if need be
