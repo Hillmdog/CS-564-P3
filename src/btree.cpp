@@ -203,8 +203,7 @@ void BTreeIndex::splitNonLeaf(NonLeafNodeInt* oldNode, NonLeafNodeInt* tempNode,
 
 	// create new page
 	Page* newPage = nullptr;
-	PageId nextPageId = nextPageID;
-	bufMgr->allocPage(file, nextPageId, newPage);
+	bufMgr->allocPage(file, nextPageID, newPage);
 	// unpin page and increment nextPageID
 	bufMgr->unPinPage(file, nextPageID, true);
 	nextPageID+=1;
@@ -413,9 +412,8 @@ void BTreeIndex::insertIntoNonLeaf(NonLeafNodeInt* tempNode, NonLeafNodeInt* cur
 void BTreeIndex::splitLeafNode(LeafNodeInt* cur, NonLeafNodeInt* tempNode, int target, RecordId id){
 	// create new node and page
 	Page* newPage = nullptr;
-	PageId nextPageId = nextPageID;
-	bufMgr->allocPage(file, nextPageId, newPage);
-	bufMgr->unPinPage(file, nextPageId, true); // unpinpage
+	bufMgr->allocPage(file, nextPageID, newPage);
+	bufMgr->unPinPage(file, nextPageID, true); // unpinpage
 	LeafNodeInt* newNode = (LeafNodeInt*)(newPage);
 	nextPageID += 1;
 
@@ -604,9 +602,8 @@ NonLeafNodeInt* BTreeIndex::treeInsertNode(Page current, int target, int level, 
 		
 		} else {
 			Page* returnedPage = nullptr;
-			PageId nextPageId = nextPageID;
-			bufMgr->allocPage(file, nextPageId, returnedPage);
-			bufMgr->unPinPage(file, nextPageId, true);
+			bufMgr->allocPage(file, nextPageID, returnedPage);
+			bufMgr->unPinPage(file, nextPageID, true);
 			// dont increment nextPageID because this node/page is only temporary
 			// NonLeafNodeInt* returnedNode = reinterpret_cast<NonLeafNodeInt*>(&returnedPage);
 			NonLeafNodeInt* returnedNode = (NonLeafNodeInt*)(returnedPage);
@@ -643,9 +640,8 @@ NonLeafNodeInt* BTreeIndex::treeInsertNode(Page current, int target, int level, 
 
 			// create tempNode to pass up
 			Page* tempPage = nullptr;
-			PageId nextPageId = nextPageID;
-			bufMgr->allocPage(file, nextPageId, tempPage);
-			bufMgr->unPinPage(file, nextPageId, true);
+			bufMgr->allocPage(file, nextPageID, tempPage);
+			bufMgr->unPinPage(file, nextPageID, true);
 			// dont increment nextPageID because this node/page is only temporary
 			// NonLeafNodeInt* tempNode = reinterpret_cast<NonLeafNodeInt*>(&tempPage);
 			NonLeafNodeInt* tempNode = (NonLeafNodeInt*)(tempPage);
@@ -690,20 +686,25 @@ void BTreeIndex::insertEntry(const void *key, const RecordId rid)
 		
 		// create a leafnode
 		Page* leafPage = nullptr;
-		PageId nextPageId = nextPageID;
-		bufMgr->allocPage(file, nextPageId, leafPage);
-		bufMgr->unPinPage(file, nextPageId, true);
+		bufMgr->allocPage(file, nextPageID, leafPage);
+		bufMgr->unPinPage(file, nextPageID, true);
 		nextPageID+=1;
 
 		// LeafNodeInt* leaf = reinterpret_cast<LeafNodeInt*>(&leafPage);
 		LeafNodeInt* leaf = (LeafNodeInt*)(leafPage);
 
+		// set empty leaf's keys all to MYNULL 
+		for (int i=0; i < INTARRAYLEAFSIZE; i++) {
+			leaf->keyArray[i] = MYNULL;
+		}
 		//insert key and rid into leaf node
 		leaf->keyArray[0] = keyInt;
 		leaf->ridArray[0] = rid;
 
 		// in root node, set pageNoArray at [1] to the leafNode
 		root->pageNoArray[1] = leafPage->page_number();
+		PageId tempPid = leafPage->page_number();
+		std::cout << tempPid;
 		// set keyArray at [0] to key
 		root->keyArray[0] = keyInt;
 	}

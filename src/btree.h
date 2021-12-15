@@ -293,7 +293,7 @@ class BTreeIndex {
    */
 	Operator	highOp;
 
-	int nextPageID;
+	PageId nextPageID;
 	
 	
  public:
