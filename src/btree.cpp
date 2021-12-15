@@ -34,6 +34,9 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 		const Datatype attrType)
 
 {
+	std::ostringstream idxStr;
+	idxStr << relationName << "." << attrByteOffset;
+	outIndexName = idxStr.str();
 	// check if the index file exists
 	if (!File::exists(outIndexName)) {
 		// create the index file if not already exists
@@ -644,7 +647,8 @@ NonLeafNodeInt* BTreeIndex::treeInsertNode(Page current, int target, int level, 
 void BTreeIndex::insertEntry(const void *key, const RecordId rid) 
 {
 	// cast key to an int	
-	int keyInt = *(reinterpret_cast<int*>(&key));
+	// int keyInt = *(reinterpret_cast<int*>(&key));
+	int keyInt = *((int*)key);
 
 	// get root
 	Page* rootPage = nullptr;
