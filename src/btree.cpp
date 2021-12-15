@@ -65,6 +65,14 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 		Page* rootPage;
 		bufMgr->allocPage(file, rootPageNum, rootPage);
 		((NonLeafNodeInt*)rootPage)->level=0;
+		// set empty nonleaf's keys and pageNums all to NULL 
+		for (int i=0; i < INTARRAYNONLEAFSIZE; i++) {
+			((NonLeafNodeInt*)rootPage)->keyArray[i] = MYNULL;
+			((NonLeafNodeInt*)rootPage)->pageNoArray[i] = MYNULL;
+		}
+		((NonLeafNodeInt*)rootPage)->pageNoArray[INTARRAYNONLEAFSIZE] = MYNULL;
+		// for debugging
+		NonLeafNodeInt* rootInfo = (NonLeafNodeInt*)rootPage;
 		bufMgr->unPinPage(file, rootPageNum, true);
 
 		// insert entries for every tuple in the base relation using FileScan class
@@ -206,7 +214,7 @@ void BTreeIndex::splitNonLeaf(NonLeafNodeInt* oldNode, NonLeafNodeInt* tempNode,
 
 	// set all values in arrays of newNode to null
 	for (int i = 0; i < INTARRAYNONLEAFSIZE; i++) {
-		newNode->keyArray[i] = NULL;
+		newNode->keyArray[i] = MYNULL;
 	}
 
 	//calc halfindex
@@ -224,14 +232,14 @@ void BTreeIndex::splitNonLeaf(NonLeafNodeInt* oldNode, NonLeafNodeInt* tempNode,
 			oldNode->keyArray[i-1] = oldNode->keyArray[i];
 		}
 	}
-	oldNode->keyArray[INTARRAYNONLEAFSIZE-1] = NULL;
+	oldNode->keyArray[INTARRAYNONLEAFSIZE-1] = MYNULL;
 
 	//redistribute array values to each node
 	for (int i = halfindex; i < INTARRAYNONLEAFSIZE; i++) {
 		newNode->keyArray[i-halfindex] = oldNode->keyArray[i];
 
 		// remove old values
-		oldNode->keyArray[i] = NULL;
+		oldNode->keyArray[i] = MYNULL;
 	}
 	for (int i = halfindex; i < INTARRAYNONLEAFSIZE+1; i++) {
 		newNode->pageNoArray[i-halfindex] = oldNode->pageNoArray[i];
@@ -247,7 +255,7 @@ void BTreeIndex::splitNonLeaf(NonLeafNodeInt* oldNode, NonLeafNodeInt* tempNode,
 		// find pos first
 		int pos = -1;
 		for (int i = 0; i < INTARRAYNONLEAFSIZE; i++) {
-			if (oldNode->keyArray[i] > newKey || oldNode->keyArray[i] == NULL) {
+			if (oldNode->keyArray[i] > newKey || oldNode->keyArray[i] == MYNULL) {
 				pos = i;
 				break;
 			}
@@ -291,7 +299,7 @@ void BTreeIndex::splitNonLeaf(NonLeafNodeInt* oldNode, NonLeafNodeInt* tempNode,
 		// find pos first
 		int pos = -1;
 		for (int i = 0; i < INTARRAYNONLEAFSIZE; i++) {
-			if (newNode->keyArray[i] > newKey || newNode->keyArray[i] == NULL) {
+			if (newNode->keyArray[i] > newKey || newNode->keyArray[i] == MYNULL) {
 				pos = i;
 				break;
 			}
@@ -413,7 +421,7 @@ void BTreeIndex::splitLeafNode(LeafNodeInt* cur, NonLeafNodeInt* tempNode, int t
 
 	// set all values of newNodes arrays to null
 	for (int i = 0; i < INTARRAYLEAFSIZE; i++) {
-		newNode->keyArray[i] = NULL;
+		newNode->keyArray[i] = MYNULL;
 		// newNode->ridArray[i] = NULL;
 	}
 
@@ -427,7 +435,7 @@ void BTreeIndex::splitLeafNode(LeafNodeInt* cur, NonLeafNodeInt* tempNode, int t
 		newNode->ridArray[i-halfindex] = cur->ridArray[i];
 
 		// remove old value
-		cur->keyArray[i] = NULL;
+		cur->keyArray[i] = MYNULL;
 		// cur->ridArray[i] = NULL;
 	}
 
@@ -441,7 +449,7 @@ void BTreeIndex::splitLeafNode(LeafNodeInt* cur, NonLeafNodeInt* tempNode, int t
 		int pos = -1;
 		int flag = -1;
 		for (int i = 0; i < halfindex; i++) {
-			if (cur->keyArray[i] < target && cur->keyArray != NULL) {
+			if (cur->keyArray[i] < target && cur->keyArray[i] != MYNULL) {
 				tempKey[i] = cur->keyArray[i];
 				temprid[i] = cur->ridArray[i];
 			} else if (flag == -1) {
@@ -466,7 +474,7 @@ void BTreeIndex::splitLeafNode(LeafNodeInt* cur, NonLeafNodeInt* tempNode, int t
 		int pos = -1;
 		int flag = -1;
 		for (int i = 0; i < halfindex; i++) {
-			if (newNode->keyArray[i] < target && newNode->keyArray[i] != NULL) {
+			if (newNode->keyArray[i] < target && newNode->keyArray[i] != MYNULL) {
 				tempKey[i] = newNode->keyArray[i];
 				temprid[i] = newNode->ridArray[i];
 			} else if (flag == -1) {
@@ -513,7 +521,7 @@ void insertIntoLeaf(LeafNodeInt* cur, int target, RecordId id) {
 	int pos = -1;
 	int flag = -1;
 	for (int i  = 0; i < INTARRAYLEAFSIZE-1; i ++) {
-		if (cur->keyArray[i] < target && cur->keyArray[i] != NULL) {
+		if (cur->keyArray[i] < target && cur->keyArray[i] != MYNULL) {
 			tempKey[i] = cur->keyArray[i];
 			temprid[i] = cur->ridArray[i];
 		} else if (flag == -1) {
@@ -581,7 +589,7 @@ NonLeafNodeInt* BTreeIndex::treeInsertNode(Page current, int target, int level, 
 		// geniune question: what if the key array is full but not the pageNo one
 		int space = 0;
 		for (int i = 0; i < INTARRAYNONLEAFSIZE; i++) {
-			if (cur->keyArray[i] == NULL) {
+			if (cur->keyArray[i] == MYNULL) {
 				space = 1;
 				break;
 			}
@@ -616,7 +624,7 @@ NonLeafNodeInt* BTreeIndex::treeInsertNode(Page current, int target, int level, 
 		// check if there is space in arrays
 		int space = 0;
 		for (int i = 0; i < INTARRAYLEAFSIZE; i++) {
-			if (cur->keyArray[i] == NULL) {
+			if (cur->keyArray[i] == MYNULL) {
 				space = 1;
 				break;
 			}
@@ -628,7 +636,7 @@ NonLeafNodeInt* BTreeIndex::treeInsertNode(Page current, int target, int level, 
 			insertIntoLeaf(cur, target, id);
 
 			// return null if no propogation or splitting is needed
-			return NULL;
+			return nullptr;
 
 		// hard case
 		} else { // arrays need to be split
@@ -671,7 +679,7 @@ void BTreeIndex::insertEntry(const void *key, const RecordId rid)
 	// check if roots keyArray is empty
 	int isEmpty = 1;
 	for (int i = 0; i < INTARRAYNONLEAFSIZE; i++) {
-		if (root->keyArray[i] != NULL) {
+		if (root->keyArray[i] != MYNULL) {
 			isEmpty = 0; // root is not empty
 			break;
 		}

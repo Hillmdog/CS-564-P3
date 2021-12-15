@@ -16,6 +16,7 @@
 #include "page.h"
 #include "file.h"
 #include "buffer.h"
+#include <climits>
 
 namespace badgerdb
 {
@@ -41,6 +42,7 @@ enum Operator
 	GT		/* Greater Than */
 };
 
+#define MYNULL (INT_MIN)
 
 /**
  * @brief Number of key slots in B+Tree leaf for INTEGER key.
