@@ -59,8 +59,14 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 		headerInfo->rootPageNo = 2; 
 		// const IndexMetaInfo btreeHeader = {outIndexName[0], attrByteOffset, attrType, 2};
 		// Page headerPage = *(reinterpret_cast<const Page*>(&btreeHeader));
-
 		bufMgr->unPinPage(file, headerPageNum, true);
+
+		// create root page
+		Page* rootPage;
+		bufMgr->allocPage(file, rootPageNum, rootPage);
+		((NonLeafNodeInt*)rootPage)->level=0;
+		bufMgr->unPinPage(file, rootPageNum, true);
+
 		// insert entries for every tuple in the base relation using FileScan class
 		FileScan fileScanner = FileScan(relationName, bufMgrIn);
 		try {
@@ -71,6 +77,7 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 				// get key from record 
 				const char *record_ptr = record.c_str();
 				const void *key = (int *)(record_ptr + attrByteOffset);
+				std::cout << *((int*)key) << std::endl;
 				insertEntry(key, rid);
 			}
 		} catch(EndOfFileException e) {
