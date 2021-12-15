@@ -218,11 +218,13 @@ LeafNodeInt* BTreeIndex::traverseTree (Page current, int target, int level) {
 		for (int i = 0; i < INTARRAYLEAFSIZE; i ++) {
 			if (leaf->keyArray[i] != MYNULL && leaf->keyArray[i] >= target) {
 				currentPageNum = leafPid;
+				nextEntry = i;
 				return leaf;
 			}
 		}
 		// did not find the target
 		currentPageNum = Page::INVALID_NUMBER;
+		nextEntry = MYNULL;
 		LeafNodeInt* none = nullptr;
 		return none;
 	}
@@ -893,17 +895,11 @@ void BTreeIndex::startScan(const void* lowValParm,
 	// }
 	leaf = traverseTree(*root, lowValInt, rootNode->level);
 	if (leaf == nullptr) {
+		scanExecuting = false; // what to do if the entry is not found?
 		currentPageData = nullptr;
 		return;
 	}
 	currentPageData = (Page*)(leaf);
-	// pin the page? is there a better way?
-	// Re: do it in scanNext()
-	//  bufMgr->readPage(file, leafPage->page_number(), leafPage);
-
-	// is this all or should I also set next Entry
-	// Re: set it in scanNext()
-
 }	
 
 
@@ -918,22 +914,24 @@ void BTreeIndex::scanNext(RecordId& outRid){
 	}
 	//look at current page
 	LeafNodeInt *node = (LeafNodeInt *) currentPageData;
-	outRid = node->ridArray[nextEntry];
-	// if rid is a valid key
-	if (nextEntry == INTARRAYLEAFSIZE || outRid.page_number == 0) {
-		//read page and unpin
-		nextEntry = 0;
-		bufMgr->unPinPage(file, currentPageNum, false);
-		currentPageNum = node->rightSibPageNo;
-  		bufMgr->readPage(file, currentPageNum, currentPageData);
- 		node = (LeafNodeInt *) currentPageData;
-	}
-	//if the scan is complete
-	if(nextEntry == -1) {
-		throw IndexScanCompletedException();
-	}
-	else{
+	// if rid is valid
+	if (node->keyArray[nextEntry] != MYNULL && nextEntry < INTARRAYLEAFSIZE) {
+		// if the scan is complete
+		if (node->keyArray[nextEntry] > highValInt) {
+			throw IndexScanCompletedException();
+		}
+		outRid = node->ridArray[nextEntry];
 		nextEntry++;
+	}
+
+	// if reach end of current page, jump into the next page to the right
+	if (nextEntry == INTARRAYLEAFSIZE || node->keyArray[nextEntry] == MYNULL){
+		// unpin the previous page
+		bufMgr->unPinPage(file, currentPageNum, false);
+		// update the current page and read into buffer
+		currentPageNum = node->rightSibPageNo;
+		bufMgr->readPage(file, currentPageNum, currentPageData);
+		nextEntry = 0; // reset nextEntry
 	}
 }
 
