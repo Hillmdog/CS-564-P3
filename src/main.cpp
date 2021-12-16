@@ -76,10 +76,7 @@ void errorTests();
 void deleteRelation();
 //extra tests
 void test4();
-<<<<<<< HEAD
-=======
 void test5();
->>>>>>> 1795dfd43cab19e8704b612bcbc15757aa4201c1
 void testEmpty();
 
 
@@ -184,11 +181,6 @@ void test3()
 	indexTests();
 	deleteRelation();
 }
-<<<<<<< HEAD
-
-//testing an empty tree
-=======
->>>>>>> 1795dfd43cab19e8704b612bcbc15757aa4201c1
 void test4() 
 {
 	  //testing an empty tree
@@ -196,11 +188,7 @@ void test4()
 	  // on attributes of all three types (int, double, string)
 	  std::cout << "---------------------" << std::endl;
 	  std::cout << "Empty Tree" << std::endl;
-<<<<<<< HEAD
-	  createRelationRandom();
-=======
 	  createRelationRandom(0);
->>>>>>> 1795dfd43cab19e8704b612bcbc15757aa4201c1
 	  testEmpty();
 	  File::remove(intIndexName);
 	  deleteRelation();
