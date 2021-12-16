@@ -76,6 +76,7 @@ void errorTests();
 void deleteRelation();
 //extra tests
 void test4();
+void test5();
 void testEmpty();
 
 
@@ -180,15 +181,27 @@ void test3()
 	indexTests();
 	deleteRelation();
 }
-//testing an empty tree
 void test4() 
 {
+	  //testing an empty tree
+	  // Create a relation with tuples valued 0 in random order and perform index tests 
+	  // on attributes of all three types (int, double, string)
 	  std::cout << "---------------------" << std::endl;
 	  std::cout << "Empty Tree" << std::endl;
 	  createRelationRandom(0);
 	  testEmpty();
 	  File::remove(intIndexName);
 	  deleteRelation();
+}
+void test5()
+{
+  	// Create a relation with tuples valued 0 to a extremly large relationSize in a random order and perform index tests 
+	// on attributes of all three types (int, double, string)
+  	std::cout << "--------------------" << std::endl;
+	std::cout << "Large Relation" << std::endl;
+  	createRelationRandom(100000);
+  	indexTests();
+	deleteRelation();
 }
 
 // -----------------------------------------------------------------------------
