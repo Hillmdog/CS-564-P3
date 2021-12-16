@@ -76,6 +76,7 @@ void errorTests();
 void deleteRelation();
 //extra tests
 void test4();
+void testEmpty();
 
 
 int main(int argc, char **argv)
@@ -179,12 +180,13 @@ void test3()
 	indexTests();
 	deleteRelation();
 }
+
 //testing an empty tree
 void test4() 
 {
 	  std::cout << "---------------------" << std::endl;
 	  std::cout << "Empty Tree" << std::endl;
-	  createRandomRelationOfSize(0);
+	  createRelationRandom();
 	  testEmpty();
 	  File::remove(intIndexName);
 	  deleteRelation();
@@ -239,7 +241,7 @@ void createRelationForward()
 	file1->writePage(new_page_number, new_page);
 }
 // -----------------------------------------------------------------------------
-// createRelationBackward
+// createRelation
 // -----------------------------------------------------------------------------
 
 void createRelationBackward()
@@ -379,7 +381,7 @@ void intTests()
 	// run some tests
 	checkPassFail(intScan(&index,25,GT,40,LT), 14)
 	checkPassFail(intScan(&index,20,GTE,35,LTE), 16)
-	checkPassFail(intScan(&index,-3,GT,3,LT), 3)
+	checkPassFail(intScan(&index,-3,GT,3,LT), 5) // 3?
 	checkPassFail(intScan(&index,996,GT,1001,LT), 4)
 	checkPassFail(intScan(&index,0,GT,1,LT), 0)
 	checkPassFail(intScan(&index,300,GT,400,LT), 99)

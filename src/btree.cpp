@@ -16,6 +16,7 @@
 #include "exceptions/file_not_found_exception.h"
 #include "exceptions/end_of_file_exception.h"
 #include "exceptions/file_exists_exception.h"
+#include "exceptions/page_pinned_exception.h"
 
 
 //#define DEBUG
@@ -85,7 +86,7 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 				const char *record_ptr = record.c_str();
 				const void *key = (int *)(record_ptr + attrByteOffset);
 				
-				// std::cout << *((int*)key) << std::endl;
+				std::cout << *((int*)key) << std::endl;
 				
 				// if (*((int*)key) == -320) {
 				// 	std::cout << "STOP" << std::endl;
@@ -134,15 +135,17 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 
 BTreeIndex::~BTreeIndex()
 {
-	// scanExecuting = false;
-	endScan();
+	if (scanExecuting){
+		endScan();
+	}
 	// assuming all pinned papges are unpinned as soon as the btree finishes using them.
 	try {
 		bufMgr->flushFile(file);
 	} catch (BadgerDbException e) {
-		std::cout << e.message();
 		// unpin all pages
 		// TODO
+	} catch (PagePinnedException e) {
+
 	}
 	// delete bufMgr;
 	file->~File();
@@ -791,27 +794,37 @@ void BTreeIndex::insertEntry(const void *key, const RecordId rid)
 	/*	Root Case	*/
 	if (isEmpty) {
 		
-		// create a leafnode
-		Page* leafPage = nullptr;
-		bufMgr->allocPage(file, nextPageID, leafPage);
+		// create a R leafnode 
+		Page* leafPageR = nullptr;
+		bufMgr->allocPage(file, nextPageID, leafPageR);
 		// std::cout<< leafPage->page_number() << std::endl;
 		bufMgr->unPinPage(file, nextPageID, true);
 
 		// in root node, set pageNoArray at [1] to the leafNode
 		root->pageNoArray[1] = nextPageID;
+
+		// create a L leafnode
+		Page* leafPageL = nullptr;
+		bufMgr->allocPage(file, nextPageID, leafPageL);
+		// std::cout<< leafPage->page_number() << std::endl;
+		bufMgr->unPinPage(file, nextPageID, true);
+		root->pageNoArray[0] = nextPageID;
+		
 		// set keyArray at [0] to key
 		root->keyArray[0] = keyInt;
 		
-		// LeafNodeInt* leaf = reinterpret_cast<LeafNodeInt*>(&leafPage);
-		LeafNodeInt* leaf = (LeafNodeInt*)(leafPage);
+		LeafNodeInt* leafR = (LeafNodeInt*)(leafPageR);
+		LeafNodeInt* leafL = (LeafNodeInt*)(leafPageL);
 
 		// set empty leaf's keys all to MYNULL 
 		for (int i=0; i < INTARRAYLEAFSIZE; i++) {
-			leaf->keyArray[i] = MYNULL;
+			leafR->keyArray[i] = MYNULL;
+			leafL->keyArray[i] = MYNULL;
 		}
+
 		//insert key and rid into leaf node
-		leaf->keyArray[0] = keyInt;
-		leaf->ridArray[0] = rid;
+		leafR->keyArray[0] = keyInt;
+		leafR->ridArray[0] = rid;
 	}
 
 
@@ -899,9 +912,9 @@ void BTreeIndex::startScan(const void* lowValParm,
 	// }
 	leaf = traverseTree(*root, lowValInt, rootNode->level);
 	if (leaf == nullptr) {
-		scanExecuting = false; // what to do if the entry is not found?
+		// what to do if the entry is not found?
 		currentPageData = nullptr;
-		return;
+		throw new NoSuchKeyFoundException;
 	}
 	currentPageData = (Page*)(leaf);
 }	
@@ -922,6 +935,7 @@ void BTreeIndex::scanNext(RecordId& outRid){
 	if (node->keyArray[nextEntry] != MYNULL && nextEntry < INTARRAYLEAFSIZE) {
 		// if the scan is complete
 		if (node->keyArray[nextEntry] > highValInt) {
+			// bufMgr->unPinPage(file, currentPageNum, false);
 			throw IndexScanCompletedException();
 		}
 		outRid = node->ridArray[nextEntry];
