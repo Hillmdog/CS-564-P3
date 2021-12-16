@@ -65,7 +65,7 @@ BufMgr * bufMgr = new BufMgr(100);
 
 void createRelationForward();
 void createRelationBackward();
-void createRelationRandom();
+void createRelationRandom(int size);
 void intTests();
 int intScan(BTreeIndex *index, int lowVal, Operator lowOp, int highVal, Operator highOp);
 void indexTests();
@@ -175,7 +175,7 @@ void test3()
 	// on attributes of all three types (int, double, string)
 	std::cout << "--------------------" << std::endl;
 	std::cout << "createRelationRandom" << std::endl;
-	createRelationRandom();
+	createRelationRandom(relationSize);
 	indexTests();
 	deleteRelation();
 }
@@ -184,7 +184,7 @@ void test4()
 {
 	  std::cout << "---------------------" << std::endl;
 	  std::cout << "Empty Tree" << std::endl;
-	  createRandomRelationOfSize(0);
+	  createRelationRandom(0);
 	  testEmpty();
 	  File::remove(intIndexName);
 	  deleteRelation();
@@ -290,7 +290,7 @@ void createRelationBackward()
 // createRelationRandom
 // -----------------------------------------------------------------------------
 
-void createRelationRandom()
+void createRelationRandom(int Size)
 {
   // destroy any old copies of relation file
 	try
@@ -318,9 +318,9 @@ void createRelationRandom()
   long pos;
   int val;
 	int i = 0;
-  while( i < relationSize )
+  while( i < Size )
   {
-    pos = random() % (relationSize-i);
+    pos = random() % (Size-i);
     val = intvec[pos];
     sprintf(record1.s, "%05d string record", val);
     record1.i = val;
@@ -342,8 +342,8 @@ void createRelationRandom()
 			}
 		}
 
-		int temp = intvec[relationSize-1-i];
-		intvec[relationSize-1-i] = intvec[pos];
+		int temp = intvec[Size-1-i];
+		intvec[Size-1-i] = intvec[pos];
 		intvec[pos] = temp;
 		i++;
   }
