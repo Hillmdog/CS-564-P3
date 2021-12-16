@@ -190,7 +190,6 @@ void test4()
 	  std::cout << "Empty Tree" << std::endl;
 	  createRelationRandom(0);
 	  testEmpty();
-	  File::remove(intIndexName);
 	  deleteRelation();
 }
 void test5()
