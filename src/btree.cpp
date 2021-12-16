@@ -70,8 +70,6 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 			((NonLeafNodeInt*)rootPage)->pageNoArray[i] = Page::INVALID_NUMBER;
 		}
 		((NonLeafNodeInt*)rootPage)->pageNoArray[INTARRAYNONLEAFSIZE] = Page::INVALID_NUMBER;
-		// for debugging
-		NonLeafNodeInt* rootInfo = (NonLeafNodeInt*)rootPage;
 		bufMgr->unPinPage(file, rootPageNum, true);
 
 		headerInfo->rootPageNo = BTreeIndex::rootPageNum; 
@@ -86,11 +84,17 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 				// get key from record 
 				const char *record_ptr = record.c_str();
 				const void *key = (int *)(record_ptr + attrByteOffset);
+				
 				std::cout << *((int*)key) << std::endl;
-				if (*((int*)key) == -320) {
-					std::cout << "STOP" << std::endl;
-				}
+				
+				// if (*((int*)key) == -320) {
+				// 	std::cout << "STOP" << std::endl;
+				// }
+				
 				insertEntry(key, rid);
+
+				// for debugging
+				NonLeafNodeInt* rootInfo = (NonLeafNodeInt*)rootPage;
 			}
 		} catch(EndOfFileException e) {
 			// end of file scan
@@ -231,7 +235,7 @@ LeafNodeInt* BTreeIndex::traverseTree (Page current, int target, int level) {
 
 }
 
-void BTreeIndex::splitNonLeaf(NonLeafNodeInt* oldNode, NonLeafNodeInt* tempNode, NonLeafNodeInt* returnedNode) {
+void BTreeIndex::splitNonLeaf(NonLeafNodeInt* oldNode, PageId oldPid, NonLeafNodeInt* tempNode, NonLeafNodeInt* returnedNode, PageId returnPid) {
 	// extract info from tempNode
 	int newKey = tempNode->keyArray[0];
 	PageId page1 = tempNode->pageNoArray[0];
@@ -242,7 +246,7 @@ void BTreeIndex::splitNonLeaf(NonLeafNodeInt* oldNode, NonLeafNodeInt* tempNode,
 	bufMgr->allocPage(file, nextPageID, newPage);
 	// unpin page and increment nextPageID
 	bufMgr->unPinPage(file, nextPageID, true);
-	// nextPageID+=1;
+	PageId newPid = nextPageID;
 
 	// cast page to node
 	NonLeafNodeInt* newNode = (NonLeafNodeInt*)(newPage);
@@ -258,8 +262,8 @@ void BTreeIndex::splitNonLeaf(NonLeafNodeInt* oldNode, NonLeafNodeInt* tempNode,
 	int middleKey = oldNode->keyArray[halfindex];
 	// get page nos
 	Page* oldPage = (Page*)(oldNode);
-	PageId nextPage1 = oldPage->page_number();
-	PageId nextPage2 = newPage->page_number();
+	PageId nextPage1 = oldPid;
+	PageId nextPage2 = newPid;
 
 	// remove middlekey and pageNos
 	for (int i = 0; i < INTARRAYNONLEAFSIZE; i++) {
@@ -375,7 +379,6 @@ void BTreeIndex::splitNonLeaf(NonLeafNodeInt* oldNode, NonLeafNodeInt* tempNode,
 
 	}
 
-
 	//give tempnode middlekey and pages too pass up
 	returnedNode->level = oldNode->level+1; // this doesnt actually matter for this node
 	returnedNode->keyArray[0] = middleKey;
@@ -384,7 +387,7 @@ void BTreeIndex::splitNonLeaf(NonLeafNodeInt* oldNode, NonLeafNodeInt* tempNode,
 
 }
 
-void BTreeIndex::insertIntoNonLeaf(NonLeafNodeInt* tempNode, NonLeafNodeInt* cur) {
+void BTreeIndex::insertIntoNonLeaf(NonLeafNodeInt* tempNode, NonLeafNodeInt*& cur) {
 	// extract middle key(target) and pageNos from tempNode
 	int newKey = tempNode->keyArray[0];
 	PageId page1 = tempNode->pageNoArray[0];
@@ -448,7 +451,6 @@ void BTreeIndex::splitLeafNode(LeafNodeInt* cur, PageId curPid, NonLeafNodeInt*&
 	bufMgr->allocPage(file, newPid, newPage);
 	bufMgr->unPinPage(file, newPid, true); // unpinpage
 	LeafNodeInt* newNode = (LeafNodeInt*)(newPage);
-	// nextPageID += 1;
 
 	// set all values of newNodes arrays to null
 	for (int i = 0; i < INTARRAYLEAFSIZE; i++) {
@@ -546,7 +548,7 @@ void BTreeIndex::splitLeafNode(LeafNodeInt* cur, PageId curPid, NonLeafNodeInt*&
 	tempNode->pageNoArray[1] = newPid;// new node		
 }
 
-void insertIntoLeaf(LeafNodeInt* cur, int target, RecordId rid) {
+void BTreeIndex::insertIntoLeaf(LeafNodeInt*& cur, int target, RecordId rid) {
 	// create temp new arrays
 	int tempKey[INTARRAYLEAFSIZE];
 	RecordId temprid[INTARRAYLEAFSIZE];
@@ -649,10 +651,10 @@ NonLeafNodeInt* BTreeIndex::treeInsertNode(Page current, PageId curPid, int targ
 			Page* returnedPage = nullptr;
 			bufMgr->allocPage(file, nextPageID, returnedPage);
 			bufMgr->unPinPage(file, nextPageID, true);
-			// dont increment nextPageID because this node/page is only temporary
+			PageId returnPid = nextPageID;
 			NonLeafNodeInt* returnedNode = (NonLeafNodeInt*)(returnedPage);
 			
-			splitNonLeaf(cur, tempNode, returnedNode);
+			splitNonLeaf(cur, curPid, tempNode, returnedNode, returnPid);
 
 			return returnedNode;
 		}
@@ -711,7 +713,7 @@ NonLeafNodeInt* BTreeIndex::treeInsertNode(Page current, PageId curPid, int targ
 			return nullptr;
 
 		// hard case
-		} else { // arrays need to be split
+		} else { 
 
 			// create tempNode to pass up
 			Page* tempPage = nullptr;
@@ -743,15 +745,17 @@ NonLeafNodeInt* BTreeIndex::treeInsertNode(Page current, PageId curPid, int targ
 					Page* returnedPage = nullptr;
 					bufMgr->allocPage(file, nextPageID, returnedPage);
 					bufMgr->unPinPage(file, nextPageID, true);
-					// dont increment nextPageID because this node/page is only temporary
+					PageId returnPid = nextPageID;
 					NonLeafNodeInt* returnedNode = (NonLeafNodeInt*)(returnedPage);
 					
-					splitNonLeaf(cur, tempNode, returnedNode);
-
-					return returnedNode;
+					splitNonLeaf(cur, curPid, tempNode, returnedNode, returnPid);
+					// set root to returnedNode and update rootPageNum
+					rootPageNum = returnPid;
+					return nullptr;
 				}
+			} else {
+				return tempNode;
 			}
-			return tempNode;
 		}
 	}
 }	

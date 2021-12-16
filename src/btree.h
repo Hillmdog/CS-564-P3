@@ -345,11 +345,13 @@ class BTreeIndex {
 **/
 	NonLeafNodeInt* treeInsertNode(Page current, PageId curPid, int target, int level, RecordId rid);
 
-   void insertIntoNonLeaf(NonLeafNodeInt* tempNode, NonLeafNodeInt* cur);
+   void insertIntoNonLeaf(NonLeafNodeInt* tempNode, NonLeafNodeInt*& cur);
+   
+   void insertIntoLeaf(LeafNodeInt*& cur, int target, RecordId rid);
 
    void splitLeafNode(LeafNodeInt* cur, PageId curPid, NonLeafNodeInt*& tempNode, int target, RecordId rid);
 
-   void splitNonLeaf(NonLeafNodeInt* oldNode, NonLeafNodeInt* tempNode, NonLeafNodeInt* returnedNode);
+   void splitNonLeaf(NonLeafNodeInt* oldNode, PageId oldPid, NonLeafNodeInt* tempNode, NonLeafNodeInt* returnedNode, PageId returnPid);
 
   /**
 	 * Insert a new entry using the pair <value,rid>. 
