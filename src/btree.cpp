@@ -885,6 +885,11 @@ void BTreeIndex::startScan(const void* lowValParm,
 	bufMgr->readPage(file, rootPageNum, root);
 	bufMgr->unPinPage(file, rootPageNum, true);
 	NonLeafNodeInt* rootNode = (NonLeafNodeInt*)root;
+	
+	// if empty tree
+	if (rootNode->keyArray[0] == MYNULL) {
+		throw NoSuchKeyFoundException();
+	}
 
 	// can we assume low and highValParm will always point to ints?
 	int localLow = *((int*)(lowValParm));
@@ -923,7 +928,7 @@ void BTreeIndex::startScan(const void* lowValParm,
 	if (leaf == nullptr) {
 		// what to do if the entry is not found?
 		currentPageData = nullptr;
-		throw new NoSuchKeyFoundException;
+		throw NoSuchKeyFoundException();
 	}
 	currentPageData = (Page*)(leaf);
 }	
