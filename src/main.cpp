@@ -65,7 +65,7 @@ BufMgr * bufMgr = new BufMgr(100);
 
 void createRelationForward();
 void createRelationBackward();
-void createRelationRandom();
+void createRelationRandom(int size);
 void intTests();
 int intScan(BTreeIndex *index, int lowVal, Operator lowOp, int highVal, Operator highOp);
 void indexTests();
@@ -76,6 +76,10 @@ void errorTests();
 void deleteRelation();
 //extra tests
 void test4();
+<<<<<<< HEAD
+=======
+void test5();
+>>>>>>> 1795dfd43cab19e8704b612bcbc15757aa4201c1
 void testEmpty();
 
 
@@ -176,20 +180,40 @@ void test3()
 	// on attributes of all three types (int, double, string)
 	std::cout << "--------------------" << std::endl;
 	std::cout << "createRelationRandom" << std::endl;
-	createRelationRandom();
+	createRelationRandom(relationSize);
 	indexTests();
 	deleteRelation();
 }
+<<<<<<< HEAD
 
 //testing an empty tree
+=======
+>>>>>>> 1795dfd43cab19e8704b612bcbc15757aa4201c1
 void test4() 
 {
+	  //testing an empty tree
+	  // Create a relation with tuples valued 0 in random order and perform index tests 
+	  // on attributes of all three types (int, double, string)
 	  std::cout << "---------------------" << std::endl;
 	  std::cout << "Empty Tree" << std::endl;
+<<<<<<< HEAD
 	  createRelationRandom();
+=======
+	  createRelationRandom(0);
+>>>>>>> 1795dfd43cab19e8704b612bcbc15757aa4201c1
 	  testEmpty();
 	  File::remove(intIndexName);
 	  deleteRelation();
+}
+void test5()
+{
+  	// Create a relation with tuples valued 0 to a extremly large relationSize in a random order and perform index tests 
+	// on attributes of all three types (int, double, string)
+  	std::cout << "--------------------" << std::endl;
+	std::cout << "Large Relation" << std::endl;
+  	createRelationRandom(100000);
+  	indexTests();
+	deleteRelation();
 }
 
 // -----------------------------------------------------------------------------
@@ -292,65 +316,56 @@ void createRelationBackward()
 // createRelationRandom
 // -----------------------------------------------------------------------------
 
-void createRelationRandom()
+void createRelationRandom(int size)
 {
   // destroy any old copies of relation file
-	try
-	{
-		File::remove(relationName);
-	}
-	catch(const FileNotFoundException &e)
-	{
-	}
+  try {
+    File::remove(relationName);
+  } catch (const FileNotFoundException &e) {
+  }
   file1 = new PageFile(relationName, true);
 
   // initialize all of record1.s to keep purify happy
   memset(record1.s, ' ', sizeof(record1.s));
-	PageId new_page_number;
+  PageId new_page_number;
   Page new_page = file1->allocatePage(new_page_number);
 
   // insert records in random order
 
-  std::vector<int> intvec(relationSize);
-  for( int i = 0; i < relationSize; i++ )
-  {
+  std::vector<int> intvec(size);
+  for (int i = 0; i < size; i++) {
     intvec[i] = i;
   }
 
   long pos;
   int val;
-	int i = 0;
-  while( i < relationSize )
-  {
-    pos = random() % (relationSize-i);
+  int i = 0;
+  while (i < size) {
+    pos = random() % (size - i);
     val = intvec[pos];
     sprintf(record1.s, "%05d string record", val);
     record1.i = val;
     record1.d = val;
 
-    std::string new_data(reinterpret_cast<char*>(&record1), sizeof(RECORD));
+    std::string new_data(reinterpret_cast<char *>(&record1), sizeof(RECORD));
 
-		while(1)
-		{
-			try
-			{
-    		new_page.insertRecord(new_data);
-				break;
-			}
-			catch(const InsufficientSpaceException &e)
-			{
-      	file1->writePage(new_page_number, new_page);
-  			new_page = file1->allocatePage(new_page_number);
-			}
-		}
+    while (1) {
+      try {
+        new_page.insertRecord(new_data);
+        break;
+      } catch (const InsufficientSpaceException &e) {
+        file1->writePage(new_page_number, new_page);
+        new_page = file1->allocatePage(new_page_number);
+      }
+    }
 
-		int temp = intvec[relationSize-1-i];
-		intvec[relationSize-1-i] = intvec[pos];
-		intvec[pos] = temp;
-		i++;
+    int temp = intvec[size - 1 - i];
+    intvec[size - 1 - i] = intvec[pos];
+    intvec[pos] = temp;
+    i++;
   }
-  
-	file1->writePage(new_page_number, new_page);
+
+  file1->writePage(new_page_number, new_page);
 }
 
 // -----------------------------------------------------------------------------
