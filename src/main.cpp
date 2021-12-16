@@ -76,6 +76,7 @@ void errorTests();
 void deleteRelation();
 //extra tests
 void test4();
+void testEmpty();
 
 
 int main(int argc, char **argv)
