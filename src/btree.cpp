@@ -589,11 +589,11 @@ void BTreeIndex::insertIntoLeaf(LeafNodeInt*& cur, int target, RecordId rid) {
 // -----------------------------------------------------------------------------
 // BTreeIndex::treeInsertNode
 //------------------------------------------------------------------------------
-NonLeafNodeInt* BTreeIndex::treeInsertNode(Page current, PageId curPid, int target, int level, RecordId rid) {
+NonLeafNodeInt* BTreeIndex::treeInsertNode(Page*& current, PageId curPid, int target, int level, RecordId rid) {
 	// if its not parent of leaf node
 	if (level != 1) {
 		// cast to non leaf node
-		NonLeafNodeInt* cur = reinterpret_cast<NonLeafNodeInt*>(&current);
+		NonLeafNodeInt* cur = (NonLeafNodeInt*)(current);
 		NonLeafNodeInt* tempNode;
 
 		int flag = -1;
@@ -612,7 +612,7 @@ NonLeafNodeInt* BTreeIndex::treeInsertNode(Page current, PageId curPid, int targ
 				flag = 1;
 				Page* nextPage = nullptr; 
 				bufMgr->readPage(file, cur->pageNoArray[i], nextPage);
-				tempNode = treeInsertNode(*nextPage, cur->pageNoArray[i], target, cur->level, rid);
+				tempNode = treeInsertNode(nextPage, cur->pageNoArray[i], target, cur->level, rid);
 				break;
 			}
 		}
@@ -620,7 +620,7 @@ NonLeafNodeInt* BTreeIndex::treeInsertNode(Page current, PageId curPid, int targ
 		if (flag == -1) {
 			Page* nextPage = nullptr; 
 			bufMgr->readPage(file, cur->pageNoArray[keymatched], nextPage);
-			tempNode = treeInsertNode(*nextPage, cur->pageNoArray[keymatched], target, cur->level, rid);
+			tempNode = treeInsertNode(nextPage, cur->pageNoArray[keymatched], target, cur->level, rid);
 		}
 		
 		// if nothing needs to be changed
@@ -662,7 +662,7 @@ NonLeafNodeInt* BTreeIndex::treeInsertNode(Page current, PageId curPid, int targ
 
 	// if it's a non leaf node whose children are leaf nodes
 	} else {
-		NonLeafNodeInt* cur = reinterpret_cast<NonLeafNodeInt*>(&current);
+		NonLeafNodeInt* cur = (NonLeafNodeInt*)(current);
 		LeafNodeInt* leafNode;
 		PageId leafPid;
 
@@ -818,7 +818,7 @@ void BTreeIndex::insertEntry(const void *key, const RecordId rid)
 	/*	Noraml case	*/
 	else {
 		// insert element in tree with recursion!
-		NonLeafNodeInt* node = treeInsertNode(*rootPage, rootPageNum, keyInt, root->level, rid);
+		NonLeafNodeInt* node = treeInsertNode(rootPage, rootPageNum, keyInt, root->level, rid);
 
 		// check if the returned node is = to nullptr
 		if (node != nullptr) {
@@ -870,7 +870,7 @@ void BTreeIndex::startScan(const void* lowValParm,
 	int localHigh = *((int*)(highValParm));
 
     // if low param is greater than high param throw error
-    if (localHigh > localLow) {
+    if (localHigh < localLow) {
        	throw BadScanrangeException();
     }
 
