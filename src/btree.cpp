@@ -113,7 +113,7 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 		BTreeIndex::attrByteOffset = attrByteOffset;
 		Page* headerPage;
 		bufMgr->readPage(file, headerPageNum, headerPage); // Page headerPage = (*file).readPage(headerPageNum);
-		bufMgr->unPinPage(file, headerPageNum, false);
+		bufMgr->unPinPage(file, headerPageNum, true);
 		// convert char[](Page) to struct 
 		IndexMetaInfo* headerInfo = (IndexMetaInfo*)(headerPage);
 		// if not match, throw BadIndexInfoException
@@ -885,7 +885,7 @@ void BTreeIndex::startScan(const void* lowValParm,
 	// get root page to start
 	Page* root = nullptr;
 	bufMgr->readPage(file, rootPageNum, root);
-	bufMgr->unPinPage(file, rootPageNum, root);
+	bufMgr->unPinPage(file, rootPageNum, true);
 	NonLeafNodeInt* rootNode = (NonLeafNodeInt*)root;
 
 	// can we assume low and highValParm will always point to ints?
@@ -942,7 +942,6 @@ void BTreeIndex::scanNext(RecordId& outRid){
 	}
 
 	if (currentPageNum == Page::INVALID_NUMBER) {
-		// bufMgr->unPinPage(file, currentPageNum, false);
 		throw IndexScanCompletedException();
 	}
 
@@ -952,7 +951,6 @@ void BTreeIndex::scanNext(RecordId& outRid){
 	if (node->keyArray[nextEntry] != MYNULL && nextEntry < INTARRAYLEAFSIZE) {
 		// if the scan is complete
 		if (node->keyArray[nextEntry] > highValInt) {
-			// bufMgr->unPinPage(file, currentPageNum, false);
 			throw IndexScanCompletedException();
 		}
 		outRid = node->ridArray[nextEntry];
