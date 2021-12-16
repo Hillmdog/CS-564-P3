@@ -138,22 +138,22 @@ BTreeIndex::~BTreeIndex()
 	if (scanExecuting) {
 		try {
 			endScan();
+		} catch (PagePinnedException e) {
+
 		} catch (BadgerDbException e) {
 			// unpin all pages
 			// TODO
-		} catch (PagePinnedException e) {
-
 		}
 	}
 	// assuming all pinned papges are unpinned as soon as the btree finishes using them.
 	try {
 		bufMgr->flushFile(file);
+	} catch (PagePinnedException e) {
+
 	} catch (BadgerDbException e) {
 		// unpin all pages
 		// TODO
-	} catch (PagePinnedException e) {
-
-	}
+	} 
 	// delete bufMgr;
 	file->~File();
 }
@@ -212,7 +212,7 @@ LeafNodeInt* BTreeIndex::traverseTree (Page current, int target, int level) {
 				pos = i;
 				Page* leafPage = nullptr; 
 				bufMgr->readPage(file, cur->pageNoArray[i], leafPage);
-				bufMgr->unPinPage(file, cur->pageNoArray[i], false);
+				// bufMgr->unPinPage(file, cur->pageNoArray[i], false);
 				leaf = (LeafNodeInt*) leafPage;
 				leafPid = cur->pageNoArray[i];
 				break;
@@ -223,7 +223,7 @@ LeafNodeInt* BTreeIndex::traverseTree (Page current, int target, int level) {
 		if (flag == 0) {
 			Page* leafPage;
 			bufMgr->readPage(file, cur->pageNoArray[pos], leafPage);
-			bufMgr->unPinPage(file, cur->pageNoArray[pos], false);
+			// bufMgr->unPinPage(file, cur->pageNoArray[pos], false);
 			leaf = (LeafNodeInt*) leafPage;
 			leafPid = cur->pageNoArray[pos];
 		}
@@ -622,6 +622,7 @@ NonLeafNodeInt* BTreeIndex::treeInsertNode(Page*& current, PageId curPid, int ta
 				flag = 1;
 				Page* nextPage = nullptr; 
 				bufMgr->readPage(file, cur->pageNoArray[i], nextPage);
+				bufMgr->unPinPage(file, cur->pageNoArray[i], true);
 				tempNode = treeInsertNode(nextPage, cur->pageNoArray[i], target, cur->level, rid);
 				break;
 			}
@@ -630,6 +631,7 @@ NonLeafNodeInt* BTreeIndex::treeInsertNode(Page*& current, PageId curPid, int ta
 		if (flag == -1) {
 			Page* nextPage = nullptr; 
 			bufMgr->readPage(file, cur->pageNoArray[keymatched], nextPage);
+			bufMgr->unPinPage(file, cur->pageNoArray[keymatched], true);
 			tempNode = treeInsertNode(nextPage, cur->pageNoArray[keymatched], target, cur->level, rid);
 		}
 		
@@ -692,6 +694,7 @@ NonLeafNodeInt* BTreeIndex::treeInsertNode(Page*& current, PageId curPid, int ta
 				flag = 1;
 				Page* nextPage = nullptr; 
 				bufMgr->readPage(file, cur->pageNoArray[i], nextPage);
+				bufMgr->unPinPage(file, cur->pageNoArray[i], true);
 				leafNode = (LeafNodeInt*)nextPage;
 				leafPid = cur->pageNoArray[i];
 				break;
@@ -701,6 +704,7 @@ NonLeafNodeInt* BTreeIndex::treeInsertNode(Page*& current, PageId curPid, int ta
 		if (flag == -1) {
 			Page* nextPage = nullptr; 
 			bufMgr->readPage(file, cur->pageNoArray[keymatched], nextPage);
+			bufMgr->unPinPage(file, cur->pageNoArray[keymatched], true);
 			leafNode = (LeafNodeInt*)nextPage;
 			leafPid = cur->pageNoArray[keymatched];
 		}
@@ -936,6 +940,12 @@ void BTreeIndex::scanNext(RecordId& outRid){
 	if(scanExecuting == false){
 		throw ScanNotInitializedException();
 	}
+
+	if (currentPageNum == Page::INVALID_NUMBER) {
+		// bufMgr->unPinPage(file, currentPageNum, false);
+		throw IndexScanCompletedException();
+	}
+
 	//look at current page
 	LeafNodeInt *node = (LeafNodeInt *) currentPageData;
 	// if rid is valid
