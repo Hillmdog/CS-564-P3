@@ -86,7 +86,7 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 				const char *record_ptr = record.c_str();
 				const void *key = (int *)(record_ptr + attrByteOffset);
 				
-				std::cout << *((int*)key) << std::endl;
+				// std::cout << *((int*)key) << std::endl;
 				
 				// if (*((int*)key) == -320) {
 				// 	std::cout << "STOP" << std::endl;
