@@ -291,7 +291,7 @@ void createRelationBackward()
 // createRelationRandom
 // -----------------------------------------------------------------------------
 
-void createRelationRandom(int Size)
+void createRelationRandom(int size)
 {
   // destroy any old copies of relation file
   try {
