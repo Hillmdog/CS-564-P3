@@ -179,7 +179,7 @@ LeafNodeInt* BTreeIndex::traverseTree (Page current, int target, int level) {
 				pos = i;
 				Page* nextPage = nullptr; 
 				bufMgr->readPage(file, cur->pageNoArray[i], nextPage);
-				bufMgr->unPinPage(file, cur->pageNoArray[i], false);
+				bufMgr->unPinPage(file, cur->pageNoArray[i], true);
 				next = traverseTree(*nextPage, target, cur->level);
 				break;
 			}
@@ -189,7 +189,7 @@ LeafNodeInt* BTreeIndex::traverseTree (Page current, int target, int level) {
 		if (flag == 0) {
 			Page* nextPage;
 			bufMgr->readPage(file, cur->pageNoArray[pos], nextPage);
-			bufMgr->unPinPage(file, cur->pageNoArray[pos], false);
+			bufMgr->unPinPage(file, cur->pageNoArray[pos], true);
 			next = traverseTree(*nextPage, target, cur->level);
 		}
 		return next;
@@ -212,7 +212,6 @@ LeafNodeInt* BTreeIndex::traverseTree (Page current, int target, int level) {
 				pos = i;
 				Page* leafPage = nullptr; 
 				bufMgr->readPage(file, cur->pageNoArray[i], leafPage);
-				// bufMgr->unPinPage(file, cur->pageNoArray[i], false);
 				leaf = (LeafNodeInt*) leafPage;
 				leafPid = cur->pageNoArray[i];
 				break;
@@ -223,7 +222,6 @@ LeafNodeInt* BTreeIndex::traverseTree (Page current, int target, int level) {
 		if (flag == 0) {
 			Page* leafPage;
 			bufMgr->readPage(file, cur->pageNoArray[pos], leafPage);
-			// bufMgr->unPinPage(file, cur->pageNoArray[pos], false);
 			leaf = (LeafNodeInt*) leafPage;
 			leafPid = cur->pageNoArray[pos];
 		}
@@ -960,7 +958,7 @@ void BTreeIndex::scanNext(RecordId& outRid){
 	// if reach end of current page, jump into the next page to the right
 	if (nextEntry == INTARRAYLEAFSIZE || node->keyArray[nextEntry] == MYNULL){
 		// unpin the previous page
-		bufMgr->unPinPage(file, currentPageNum, false);
+		bufMgr->unPinPage(file, currentPageNum, true);
 		// update the current page and read into buffer
 		currentPageNum = node->rightSibPageNo;
 		bufMgr->readPage(file, currentPageNum, currentPageData);
@@ -979,7 +977,7 @@ void BTreeIndex::endScan(){
 	}
 	scanExecuting = false;//end the scan
 	//unpin the pages for the scan
-	bufMgr->unPinPage(file, currentPageNum, false);
+	bufMgr->unPinPage(file, currentPageNum, true);
 }
 
 }
