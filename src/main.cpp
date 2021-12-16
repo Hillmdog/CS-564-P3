@@ -294,62 +294,53 @@ void createRelationBackward()
 void createRelationRandom(int Size)
 {
   // destroy any old copies of relation file
-	try
-	{
-		File::remove(relationName);
-	}
-	catch(const FileNotFoundException &e)
-	{
-	}
+  try {
+    File::remove(relationName);
+  } catch (const FileNotFoundException &e) {
+  }
   file1 = new PageFile(relationName, true);
 
   // initialize all of record1.s to keep purify happy
   memset(record1.s, ' ', sizeof(record1.s));
-	PageId new_page_number;
+  PageId new_page_number;
   Page new_page = file1->allocatePage(new_page_number);
 
   // insert records in random order
 
-  std::vector<int> intvec(relationSize);
-  for( int i = 0; i < relationSize; i++ )
-  {
+  std::vector<int> intvec(size);
+  for (int i = 0; i < size; i++) {
     intvec[i] = i;
   }
 
   long pos;
   int val;
-	int i = 0;
-  while( i < Size )
-  {
-    pos = random() % (Size-i);
+  int i = 0;
+  while (i < size) {
+    pos = random() % (size - i);
     val = intvec[pos];
     sprintf(record1.s, "%05d string record", val);
     record1.i = val;
     record1.d = val;
 
-    std::string new_data(reinterpret_cast<char*>(&record1), sizeof(RECORD));
+    std::string new_data(reinterpret_cast<char *>(&record1), sizeof(RECORD));
 
-		while(1)
-		{
-			try
-			{
-    		new_page.insertRecord(new_data);
-				break;
-			}
-			catch(const InsufficientSpaceException &e)
-			{
-      	file1->writePage(new_page_number, new_page);
-  			new_page = file1->allocatePage(new_page_number);
-			}
-		}
+    while (1) {
+      try {
+        new_page.insertRecord(new_data);
+        break;
+      } catch (const InsufficientSpaceException &e) {
+        file1->writePage(new_page_number, new_page);
+        new_page = file1->allocatePage(new_page_number);
+      }
+    }
 
-		int temp = intvec[Size-1-i];
-		intvec[Size-1-i] = intvec[pos];
-		intvec[pos] = temp;
-		i++;
+    int temp = intvec[size - 1 - i];
+    intvec[size - 1 - i] = intvec[pos];
+    intvec[pos] = temp;
+    i++;
   }
-  
-	file1->writePage(new_page_number, new_page);
+
+  file1->writePage(new_page_number, new_page);
 }
 
 // -----------------------------------------------------------------------------
