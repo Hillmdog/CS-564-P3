@@ -135,8 +135,15 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 
 BTreeIndex::~BTreeIndex()
 {
-	if (scanExecuting){
-		endScan();
+	if (scanExecuting) {
+		try {
+			endScan();
+		} catch (BadgerDbException e) {
+			// unpin all pages
+			// TODO
+		} catch (PagePinnedException e) {
+
+		}
 	}
 	// assuming all pinned papges are unpinned as soon as the btree finishes using them.
 	try {
